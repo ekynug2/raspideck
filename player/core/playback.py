@@ -26,8 +26,8 @@ try:
     if platform.system() == "Linux":
         vlc_args.extend([
             "--vout=xcb_x11",
+            "--codec=avcodec",
             "--aout=alsa",
-            "--alsa-audio-device=sysdefault:CARD=vc4hdmi",
             "--no-dbus",
             "--x11-display=:0",
         ])
@@ -50,7 +50,7 @@ except (ImportError, OSError, AttributeError) as e:
     print(f"[player] Warning: VLC engine initialization fallback ({e})", flush=True)
 
 
-def vlc_play_and_wait(path: Path) -> None:
+def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
     """Load media into VLC player, play fullscreen, and wait until ended without destroying window."""
     if not _VLC_AVAILABLE or VLC_PLAYER is None or VLC_INSTANCE is None:
         print(f"[player-mock] Playing: {path.name}", flush=True)
@@ -62,7 +62,16 @@ def vlc_play_and_wait(path: Path) -> None:
     if not VLC_PLAYER.get_fullscreen():
         VLC_PLAYER.set_fullscreen(True)
     VLC_PLAYER.audio_set_mute(False)
-    VLC_PLAYER.audio_set_volume(100)
+
+    # Sync volume from local display settings
+    try:
+        from core.settings import load_settings
+
+        vol = int(load_settings().get("volume", 100))
+        VLC_PLAYER.audio_set_volume(max(0, min(100, vol)))
+    except Exception:
+        VLC_PLAYER.audio_set_volume(100)
+
     VLC_PLAYER.play()
 
     # Wait for playback to start (max 5s)
@@ -71,13 +80,17 @@ def vlc_play_and_wait(path: Path) -> None:
         time.sleep(0.05)
         wait += 1
         if wait > 100:
-            print(f"[player] Timeout starting: {path}", flush=True)
+            print(f"[player] Timeout starting: {path.name}", flush=True)
             return
 
-    # Wait until ended or error
+    start_time = time.time()
+    # Wait until ended or error (with max duration safeguard)
     while VLC_PLAYER.get_state() != _STATE_ENDED:
         if VLC_PLAYER.get_state() == _STATE_ERROR:
-            print(f"[player] Error playing: {path}", flush=True)
+            print(f"[player] Error playing: {path.name}", flush=True)
+            time.sleep(1.0)
+            break
+        if max_duration > 0 and (time.time() - start_time) >= (max_duration + 2):
             break
         time.sleep(0.05)
 
@@ -105,9 +118,9 @@ def play_image(path: Path, duration: int) -> None:
     time.sleep(duration)
 
 
-def play_video(path: Path, _duration: int) -> None:
+def play_video(path: Path, duration: int = 0) -> None:
     """Play video fullscreen via VLC python binding until ended."""
-    vlc_play_and_wait(path)
+    vlc_play_and_wait(path, max_duration=duration)
 
 
 def show_waiting_screen(message: str = "Waiting for Playlist...") -> None:

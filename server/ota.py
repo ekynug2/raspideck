@@ -129,18 +129,21 @@ def build_player_package(version: str | None = None) -> dict[str, Any]:
 
 
 def get_latest_manifest() -> dict[str, Any]:
-    """Retrieve current update manifest or build one automatically if missing."""
+    """Retrieve current update manifest or build one automatically if missing or outdated."""
     manifest_path = UPDATES_DIR / MANIFEST_FILENAME
     archive_path = UPDATES_DIR / PACKAGE_FILENAME
+    src_version = get_source_version()
 
     if manifest_path.exists() and archive_path.exists():
         try:
-            return json.loads(manifest_path.read_text())
+            data = json.loads(manifest_path.read_text())
+            if data.get("version") == src_version:
+                return data
         except Exception:
             pass
 
-    # Build fresh package if missing
-    return build_player_package()
+    # Build fresh package if missing or outdated
+    return build_player_package(version=src_version)
 
 
 def send_resumable_file(file_path: Path) -> Response:

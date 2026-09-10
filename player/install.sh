@@ -80,6 +80,7 @@ sleep 1
 # Disable screen blanking & DPMS
 xset s off 2>/dev/null || true
 xset -dpms 2>/dev/null || true
+xset dpms 0 0 0 2>/dev/null || true
 xset s noblank 2>/dev/null || true
 
 # Pure black background to prevent any flash or visible borders

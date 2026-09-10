@@ -177,19 +177,37 @@ def apply_rotation(rotation: str) -> None:
         print(f"[settings] Display rotation applied: {rot}", flush=True)
 
 
-def apply_screen_power(power: str) -> None:
-    """Turn display on or off via X11 DPMS power management."""
-    pwr = str(power).strip().lower()
+def apply_screen_power(power: Any) -> None:
+    """Turn display on or off via X11 DPMS power management, preventing auto-blanking."""
+    if isinstance(power, bool):
+        is_on = power
+    else:
+        pwr = str(power).strip().lower()
+        is_on = pwr in ("on", "true", "1")
+
     env = os.environ.copy()
     if "DISPLAY" not in env:
         env["DISPLAY"] = ":0"
 
-    action = "on" if pwr == "on" else "off"
-    try:
-        subprocess.run(["xset", "dpms", "force", action], capture_output=True, env=env, timeout=3)
-        print(f"[settings] Screen power state set to {action}", flush=True)
-    except Exception:
-        pass
+    if is_on:
+        try:
+            # Wake monitor and completely disable idle DPMS power-down & screen blanking
+            subprocess.run(["xset", "s", "off"], capture_output=True, env=env, timeout=3)
+            subprocess.run(["xset", "s", "noblank"], capture_output=True, env=env, timeout=3)
+            subprocess.run(["xset", "-dpms"], capture_output=True, env=env, timeout=3)
+            subprocess.run(["xset", "dpms", "0", "0", "0"], capture_output=True, env=env, timeout=3)
+            subprocess.run(["xset", "dpms", "force", "on"], capture_output=True, env=env, timeout=3)
+            print("[settings] Screen power state set to on (DPMS timers disabled)", flush=True)
+        except Exception as e:
+            print(f"[settings] Warning applying screen power on: {e}", flush=True)
+    else:
+        try:
+            # Put monitor into power-saving standby
+            subprocess.run(["xset", "+dpms"], capture_output=True, env=env, timeout=3)
+            subprocess.run(["xset", "dpms", "force", "off"], capture_output=True, env=env, timeout=3)
+            print("[settings] Screen power state set to off (DPMS standby)", flush=True)
+        except Exception as e:
+            print(f"[settings] Warning applying screen power off: {e}", flush=True)
 
 
 def apply_all_settings(new_settings: dict[str, Any]) -> None:
