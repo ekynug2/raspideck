@@ -241,13 +241,23 @@ INITRD_IMG="/boot/initrd.img-$KVER"
 [ -d "/boot/firmware" ] && INITRD_IMG="/boot/firmware/initrd.img-$KVER"
 sudo grep -q '^initramfs' "$CONFIG_FILE" || echo "initramfs $(basename "$INITRD_IMG") followkernel" | sudo tee -a "$CONFIG_FILE" >/dev/null
 
-# Force HDMI signal even if TV is turned on after Pi boots, & allocate 128MB GPU for hardware video decoding
-for setting in "hdmi_force_hotplug=1" "hdmi_drive=2" "hdmi_group=1" "hdmi_mode=16" "gpu_mem=256"; do
+# Force HDMI signal even if TV is turned on after Pi boots, & allocate 512MB GPU for hardware video decoding
+for setting in "hdmi_force_hotplug=1" "hdmi_drive=2" "hdmi_group=1" "hdmi_mode=16" "gpu_mem=512"; do
     key=$(echo "$setting" | cut -d= -f1)
     if ! grep -q "^$key=" "$CONFIG_FILE"; then
         echo "$setting" | sudo tee -a "$CONFIG_FILE" >/dev/null
+    else
+        sudo sed -i "s/^$key=.*/$setting/" "$CONFIG_FILE"
     fi
 done
+
+# Configure 2048MB swap for high performance video decoding and stability
+if [ -f "/etc/dphys-swapfile" ]; then
+    sudo sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
+    sudo dphys-swapfile swapoff 2>/dev/null || true
+    sudo dphys-swapfile setup 2>/dev/null || true
+    sudo dphys-swapfile swapon 2>/dev/null || true
+fi
 
 # Set timezone to Asia/Jakarta (WIB) & ensure NTP is active
 echo "Configuring timezone & time synchronization..."
