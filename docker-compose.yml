@@ -19,6 +19,11 @@ services:
       - ./data:/data
       - ./server:/app
       - ./player:/player:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Cloudflare Tunnel
   # In Cloudflare Zero Trust Dashboard, point your domain / public hostname -> http://raspideck:8000

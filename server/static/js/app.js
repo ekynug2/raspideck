@@ -98,9 +98,27 @@ async function api(endpoint, options = {}) {
 // --- POLLING & SYNC ---
 function startSilentPolling() {
   if (state.pollingInterval) clearInterval(state.pollingInterval);
+  // Poll screens every 5 seconds only when tab is actively viewed
   state.pollingInterval = setInterval(() => {
-    if (typeof fetchScreensSilent === 'function') fetchScreensSilent();
+    if (!document.hidden && typeof fetchScreensSilent === 'function') {
+      fetchScreensSilent();
+    }
   }, 5000);
+
+  // Poll player-version infrequently (once every 60 seconds)
+  if (state.versionInterval) clearInterval(state.versionInterval);
+  state.versionInterval = setInterval(() => {
+    if (!document.hidden && typeof fetchPlayerVersion === 'function') {
+      fetchPlayerVersion();
+    }
+  }, 60000);
+
+  // Automatically refresh when switching back to this tab
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && typeof fetchScreensSilent === 'function') {
+      fetchScreensSilent();
+    }
+  });
 }
 
 async function handleManualSync(btn) {

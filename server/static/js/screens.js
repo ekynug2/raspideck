@@ -16,13 +16,20 @@ async function fetchPlayerVersion() {
   }
 }
 
+let isFetchingScreensSilent = false;
+
 async function fetchScreensSilent() {
-  await fetchPlayerVersion();
-  const data = await api('/api/screens');
-  if (!data) return;
-  state.screens = data;
-  renderScreens();
-  updateScreenStats();
+  if (document.hidden || isFetchingScreensSilent) return;
+  isFetchingScreensSilent = true;
+  try {
+    const data = await api('/api/screens');
+    if (!data) return;
+    state.screens = data;
+    renderScreens();
+    updateScreenStats();
+  } finally {
+    isFetchingScreensSilent = false;
+  }
 }
 
 async function fetchScreens() {
