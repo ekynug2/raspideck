@@ -19,6 +19,7 @@ try:
         "--no-osd",
         "--no-mouse-events",
         "--no-keyboard-events",
+        "--avcodec-hw=auto",
         "--no-sub-autodetect-file",
         "--file-caching=1000",
         "--quiet",
@@ -26,7 +27,6 @@ try:
     if platform.system() == "Linux":
         vlc_args.extend([
             "--vout=xcb_x11",
-            "--codec=avcodec",
             "--aout=alsa",
             "--no-dbus",
             "--x11-display=:0",
@@ -51,7 +51,7 @@ except (ImportError, OSError, AttributeError) as e:
 
 
 def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
-    """Load media into VLC player, play fullscreen, and wait until ended without destroying window."""
+    """Load media into VLC player, play fullscreen, and wait until ended."""
     if not _VLC_AVAILABLE or VLC_PLAYER is None or VLC_INSTANCE is None:
         print(f"[player-mock] Playing: {path.name}", flush=True)
         time.sleep(2)
@@ -81,6 +81,10 @@ def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
         wait += 1
         if wait > 100:
             print(f"[player] Timeout starting: {path.name}", flush=True)
+            try:
+                VLC_PLAYER.stop()
+            except Exception:
+                pass
             return
 
     start_time = time.time()
@@ -88,16 +92,17 @@ def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
     while VLC_PLAYER.get_state() != _STATE_ENDED:
         if VLC_PLAYER.get_state() == _STATE_ERROR:
             print(f"[player] Error playing: {path.name}", flush=True)
-            time.sleep(1.0)
             break
         if max_duration > 0 and (time.time() - start_time) >= (max_duration + 2):
             break
         time.sleep(0.05)
 
-    # NOTE: We intentionally DO NOT call VLC_PLAYER.stop() or time.sleep() here!
-    # By keeping the existing X11 video window mapped and holding the last video frame,
-    # the transition to the next video happens seamlessly without destroying the window
-    # or causing HDMI resync (the "TV off" blink effect).
+    # Stop and clean up player before next media to prevent freeze in Ended state
+    try:
+        VLC_PLAYER.stop()
+    except Exception:
+        pass
+    time.sleep(0.2)
 
 
 def play_image(path: Path, duration: int) -> None:
@@ -114,8 +119,13 @@ def play_image(path: Path, duration: int) -> None:
         VLC_PLAYER.set_fullscreen(True)
     VLC_PLAYER.play()
 
-    # Image displays for duration seconds without destroying window
+    # Image displays for duration seconds
     time.sleep(duration)
+    try:
+        VLC_PLAYER.stop()
+    except Exception:
+        pass
+    time.sleep(0.1)
 
 
 def play_video(path: Path, duration: int = 0) -> None:
