@@ -17,6 +17,8 @@ new-plan.md
 *.sqlite3
 deck.db
 server/deck.db
+!example.db
+!server/example.db
 
 # Media files & uploads
 data/
