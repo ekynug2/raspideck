@@ -1,12 +1,12 @@
 <!-- DISPLAYS KPI CARDS -->
-<div class="row row-deck row-cards mb-4">
+<div class="row row-deck g-2 g-md-3 mb-3 mb-md-4">
   <!-- Stat 1: Displays Online -->
-  <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm kpi-card">
       <div class="card-body">
-        <div class="row align-items-center">
+        <div class="row align-items-center g-2 g-sm-3">
           <div class="col-auto">
-            <span class="bg-success text-white avatar rounded-3">
+            <span class="bg-success text-white avatar rounded-3 kpi-avatar">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
                 <rect x="2" y="3" width="20" height="14" rx="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -14,9 +14,9 @@
               </svg>
             </span>
           </div>
-          <div class="col">
-            <div class="fw-bold fs-2 text-truncate text-success" id="stat-screens-online">0 Online</div>
-            <div class="text-secondary small" id="stat-screens-total">Dari 0 Layar Terpasang</div>
+          <div class="col min-w-0">
+            <div class="fw-bold fs-2 text-truncate text-success kpi-value" id="stat-screens-online">0 Online</div>
+            <div class="text-secondary small text-truncate kpi-subtext" id="stat-screens-total">0 Terpasang</div>
           </div>
         </div>
       </div>
@@ -24,12 +24,12 @@
   </div>
 
   <!-- Stat 2: Displays Offline -->
-  <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm kpi-card">
       <div class="card-body">
-        <div class="row align-items-center">
+        <div class="row align-items-center g-2 g-sm-3">
           <div class="col-auto">
-            <span class="bg-danger text-white avatar rounded-3">
+            <span class="bg-danger text-white avatar rounded-3 kpi-avatar">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M3 3l18 18" />
@@ -39,9 +39,9 @@
               </svg>
             </span>
           </div>
-          <div class="col">
-            <div class="fw-bold fs-2 text-truncate" id="stat-screens-offline">0 Offline</div>
-            <div class="text-secondary small">Terminal Tidak Aktif</div>
+          <div class="col min-w-0">
+            <div class="fw-bold fs-2 text-truncate kpi-value" id="stat-screens-offline">0 Offline</div>
+            <div class="text-secondary small text-truncate kpi-subtext">Tidak Aktif</div>
           </div>
         </div>
       </div>
@@ -49,12 +49,12 @@
   </div>
 
   <!-- Stat 3: Pending Approval -->
-  <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm kpi-card">
       <div class="card-body">
-        <div class="row align-items-center">
+        <div class="row align-items-center g-2 g-sm-3">
           <div class="col-auto">
-            <span class="bg-warning text-white avatar rounded-3">
+            <span class="bg-warning text-white avatar rounded-3 kpi-avatar">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M12 9v2m0 4v.01" />
@@ -62,9 +62,9 @@
               </svg>
             </span>
           </div>
-          <div class="col">
-            <div class="fw-bold fs-2 text-truncate" id="stat-screens-pending">0 Layar</div>
-            <div class="text-secondary small">Menunggu Pairing Approval</div>
+          <div class="col min-w-0">
+            <div class="fw-bold fs-2 text-truncate kpi-value" id="stat-screens-pending">0 Layar</div>
+            <div class="text-secondary small text-truncate kpi-subtext">Pending Pairing</div>
           </div>
         </div>
       </div>
@@ -72,21 +72,21 @@
   </div>
 
   <!-- Stat 4: Last Heartbeat Sync -->
-  <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm kpi-card">
       <div class="card-body">
-        <div class="row align-items-center">
+        <div class="row align-items-center g-2 g-sm-3">
           <div class="col-auto">
-            <span class="bg-primary text-white avatar rounded-3">
+            <span class="bg-primary text-white avatar rounded-3 kpi-avatar">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
                 <circle cx="12" cy="12" r="9" />
                 <polyline points="12 7 12 12 15 15" />
               </svg>
             </span>
           </div>
-          <div class="col">
-            <div class="fw-bold fs-2 text-truncate font-monospace" id="stat-last-sync">--:--:--</div>
-            <div class="text-secondary small">Sinkronisasi Terakhir</div>
+          <div class="col min-w-0">
+            <div class="fw-bold fs-2 text-truncate font-monospace kpi-value" id="stat-last-sync">--:--:--</div>
+            <div class="text-secondary small text-truncate kpi-subtext">Sinkronisasi</div>
           </div>
         </div>
       </div>

@@ -1,9 +1,9 @@
 <!-- TOP NAVBAR -->
-<header class="navbar navbar-expand-md d-print-none sticky-top border-bottom">
+<header class="navbar navbar-expand-md d-print-none sticky-top border-bottom app-top-navbar py-1 py-md-2">
   <div class="container-xl">
     <!-- BRAND -->
-    <a href="/" class="navbar-brand navbar-brand-autodark d-flex align-items-center gap-2 me-4 text-decoration-none">
-      <div class="brand-icon-box">
+    <a href="/" class="navbar-brand navbar-brand-autodark d-flex align-items-center gap-2 text-decoration-none me-md-4">
+      <div class="brand-icon-box flex-shrink-0">
         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
           <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/>
@@ -11,27 +11,27 @@
         </svg>
       </div>
       <div>
-        <div class="fw-bold fs-3 lh-1">RaspiDeck</div>
-        <div class="text-secondary fs-6 fw-normal">Digital Signage Controller</div>
+        <div class="fw-bold fs-3 lh-1 brand-title">RaspiDeck</div>
+        <div class="text-secondary fs-6 fw-normal brand-subtitle d-none d-sm-block">Digital Signage Controller</div>
       </div>
     </a>
 
     <!-- NAV TABS -->
-    <ul class="navbar-nav flex-row flex-grow-1 align-items-center gap-1" id="main-nav-tabs">
+    <ul class="navbar-nav flex-row flex-grow-1 align-items-center gap-1 navbar-nav-tabs" id="main-nav-tabs">
       <li class="nav-item">
-        <a class="nav-link active fw-medium px-3 py-2 rounded-2" href="#screens" onclick="switchTab('screens', event)">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-primary" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+        <a class="nav-link active fw-medium px-2.5 px-lg-3 py-1.5 py-lg-2 rounded-2" href="#screens" onclick="switchTab('screens', event)">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
             <rect x="2" y="3" width="20" height="14" rx="2"></rect>
             <line x1="8" y1="21" x2="16" y2="21"></line>
             <line x1="12" y1="17" x2="12" y2="21"></line>
           </svg>
           <span>Displays</span>
-          <span class="badge bg-primary-lt ms-2" id="nav-badge-screens">0</span>
+          <span class="badge bg-primary-lt ms-1 ms-lg-2" id="nav-badge-screens">0</span>
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link fw-medium px-3 py-2 rounded-2" href="#playlists" onclick="switchTab('playlists', event)">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-purple" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+        <a class="nav-link fw-medium px-2.5 px-lg-3 py-1.5 py-lg-2 rounded-2" href="#playlists" onclick="switchTab('playlists', event)">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-purple" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
             <circle cx="14" cy="17" r="3" />
             <path d="M17 17v-10h4" />
@@ -40,12 +40,12 @@
             <path d="M7 13h-4" />
           </svg>
           <span>Playlists</span>
-          <span class="badge bg-purple-lt ms-2" id="nav-badge-playlists">0</span>
+          <span class="badge bg-purple-lt ms-1 ms-lg-2" id="nav-badge-playlists">0</span>
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link fw-medium px-3 py-2 rounded-2" href="#media" onclick="switchTab('media', event)">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-azure" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+        <a class="nav-link fw-medium px-2.5 px-lg-3 py-1.5 py-lg-2 rounded-2" href="#media" onclick="switchTab('media', event)">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-azure" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
             <path d="M15 8h.01" />
             <rect x="4" y="4" width="16" height="16" rx="3" />
@@ -53,13 +53,13 @@
             <path d="M14 14l1 -1a3 5 0 0 1 3 0l2 2" />
           </svg>
           <span>Media Library</span>
-          <span class="badge bg-azure-lt ms-2" id="nav-badge-media">0</span>
+          <span class="badge bg-azure-lt ms-1 ms-lg-2" id="nav-badge-media">0</span>
         </a>
       </li>
     </ul>
 
     <!-- RIGHT ACTIONS -->
-    <div class="navbar-nav flex-row order-md-last align-items-center gap-2">
+    <div class="navbar-nav flex-row align-items-center gap-1 gap-sm-2 navbar-actions">
       <!-- Refresh Sync Button -->
       <button class="btn btn-icon btn-ghost-secondary rounded-circle" title="Refresh data" onclick="handleManualSync(this)">
         <svg id="sync-icon" xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
@@ -82,7 +82,7 @@
         </svg>
       </button>
 
-      <!-- User menu (three-dot dropdown, same mechanism as screen cards) -->
+      <!-- User menu (three-dot dropdown) -->
       <div class="dropdown" style="position:relative;">
         <button class="btn btn-icon btn-ghost-secondary rounded-circle" onclick="toggleScreenDropdown(event)" aria-label="User menu">
           <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">

@@ -294,8 +294,8 @@ function renderScreens() {
             <div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1" style="overflow: hidden;">
               <span class="status-dot status-dot-animated flex-shrink-0 ${m.online ? 'status-green status-dot-pulse' : 'status-red status-dot-pulse-red'}" title="${m.online ? 'Online' : 'Offline / Mati'}"></span>
               <div class="min-w-0 flex-grow-1" style="overflow: hidden;">
-                <h3 class="card-title fw-bold mb-0 text-truncate" style="max-width: 140px;" title="${escapeHtml(s.name || s.id)}">${escapeHtml(s.name || s.id)}</h3>
-                <div class="text-secondary small font-monospace text-truncate" style="max-width: 140px; font-size: 0.72rem;" title="${escapeHtml(displayIp)}">${escapeHtml(displayIp)}</div>
+                <h3 class="card-title fw-bold mb-0 text-truncate" title="${escapeHtml(s.name || s.id)}">${escapeHtml(s.name || s.id)}</h3>
+                <div class="text-secondary small font-monospace text-truncate" style="font-size: 0.72rem;" title="${escapeHtml(displayIp)}">${escapeHtml(displayIp)}</div>
               </div>
             </div>
             <div class="d-flex align-items-center gap-1 flex-shrink-0">

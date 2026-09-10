@@ -66,8 +66,8 @@ function renderPlaylists() {
                   <path d="M13 5h-10" />
                 </svg>
               </span>
-              <div>
-                <h3 class="card-title fw-bold mb-0 text-truncate" style="max-width: 180px;">${escapeHtml(p.name)}</h3>
+              <div class="min-w-0">
+                <h3 class="card-title fw-bold mb-0 text-truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</h3>
                 <div class="text-secondary small">Version ${p.version || 1} &bull; ${items.length} assets</div>
               </div>
             </div>
