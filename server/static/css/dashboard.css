@@ -43,8 +43,14 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 145px;
   max-width: 100%;
+}
+.search-toolbar-input {
+  width: 145px !important;
+}
+.search-toolbar-input input.form-control,
+.search-toolbar-input input.form-control-sm {
+  width: 145px !important;
 }
 .input-icon .input-icon-addon {
   position: absolute;
@@ -67,9 +73,9 @@ body {
 .input-icon input.form-control-sm {
   padding-left: 1.85rem !important;
   padding-right: 0.4rem !important;
-  height: 34px;
+  height: 36px;
   line-height: normal;
-  font-size: 0.8rem;
+  font-size: 0.825rem;
 }
 
 /* Media Thumbnail Preview Card */
@@ -757,7 +763,10 @@ body {
     padding-right: 0.65rem !important;
   }
 
-  .input-icon {
+  .input-icon,
+  .search-toolbar-input,
+  .search-toolbar-input input.form-control,
+  .search-toolbar-input input.form-control-sm {
     width: 100% !important;
   }
 
