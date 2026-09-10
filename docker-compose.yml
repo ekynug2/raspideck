@@ -18,6 +18,7 @@ services:
     volumes:
       - ./data:/data
       - ./server:/app
+      - ./player:/player:ro
 
   # Cloudflare Tunnel
   # In Cloudflare Zero Trust Dashboard, point your domain / public hostname -> http://raspideck:8000
