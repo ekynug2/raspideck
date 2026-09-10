@@ -64,32 +64,39 @@ def init_db() -> None:
             );
         """)
 
+        def _add_col(table: str, col: str, col_type: str) -> None:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
+            except sqlite3.OperationalError as err:
+                if "duplicate column name" not in str(err).lower():
+                    raise
+
         # Migration: ensure pending_command and OTA columns exist in existing screens tables
-        cols = [col[1] for col in conn.execute("PRAGMA table_info(screens)").fetchall()]
+        cols = {col[1] for col in conn.execute("PRAGMA table_info(screens)").fetchall()}
         if "pending_command" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN pending_command TEXT")
+            _add_col("screens", "pending_command", "TEXT")
         if "settings" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN settings TEXT DEFAULT '{}'")
+            _add_col("screens", "settings", "TEXT DEFAULT '{}'")
         if "app_version" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN app_version TEXT DEFAULT '2.0'")
+            _add_col("screens", "app_version", "TEXT DEFAULT '2.0'")
         if "update_status" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN update_status TEXT DEFAULT 'idle'")
+            _add_col("screens", "update_status", "TEXT DEFAULT 'idle'")
         if "pending_update" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN pending_update TEXT DEFAULT NULL")
+            _add_col("screens", "pending_update", "TEXT DEFAULT NULL")
         if "device_token" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN device_token TEXT DEFAULT NULL")
+            _add_col("screens", "device_token", "TEXT DEFAULT NULL")
         if "update_lock_acquired_at" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN update_lock_acquired_at TEXT DEFAULT NULL")
+            _add_col("screens", "update_lock_acquired_at", "TEXT DEFAULT NULL")
         if "last_update_log" not in cols:
-            conn.execute("ALTER TABLE screens ADD COLUMN last_update_log TEXT DEFAULT '[]'")
+            _add_col("screens", "last_update_log", "TEXT DEFAULT '[]'")
 
         # Migration: ensure schedule columns exist in existing playlists tables
-        pl_cols = [col[1] for col in conn.execute("PRAGMA table_info(playlists)").fetchall()]
+        pl_cols = {col[1] for col in conn.execute("PRAGMA table_info(playlists)").fetchall()}
         if "schedule_enabled" not in pl_cols:
-            conn.execute("ALTER TABLE playlists ADD COLUMN schedule_enabled INTEGER NOT NULL DEFAULT 0")
+            _add_col("playlists", "schedule_enabled", "INTEGER NOT NULL DEFAULT 0")
         if "start_time" not in pl_cols:
-            conn.execute("ALTER TABLE playlists ADD COLUMN start_time TEXT DEFAULT '00:00'")
+            _add_col("playlists", "start_time", "TEXT DEFAULT '00:00'")
         if "end_time" not in pl_cols:
-            conn.execute("ALTER TABLE playlists ADD COLUMN end_time TEXT DEFAULT '23:59'")
+            _add_col("playlists", "end_time", "TEXT DEFAULT '23:59'")
         if "schedule_days" not in pl_cols:
-            conn.execute("ALTER TABLE playlists ADD COLUMN schedule_days TEXT DEFAULT '[\"mon\",\"tue\",\"wed\",\"thu\",\"fri\",\"sat\",\"sun\"]'")
+            _add_col("playlists", "schedule_days", "TEXT DEFAULT '[\"mon\",\"tue\",\"wed\",\"thu\",\"fri\",\"sat\",\"sun\"]'")
