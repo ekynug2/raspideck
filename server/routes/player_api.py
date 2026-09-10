@@ -126,11 +126,34 @@ def player_heartbeat():
         if cmd:
             conn.execute("UPDATE screens SET pending_command = NULL WHERE id = ?", (device_id,))
 
+        # Check if an OTA update was completed and screen now runs target version
+        reconciled_logs = None
+        try:
+            raw_logs = row["last_update_log"] if "last_update_log" in row.keys() else "[]"
+            logs = json.loads(raw_logs) if isinstance(raw_logs, str) else (raw_logs or [])
+            if logs and len(logs) > 0:
+                latest_entry = logs[0]
+                target_ver = latest_entry.get("target_version") or latest_entry.get("version")
+                if latest_entry.get("status") in ("pending", "downloading", "applying", "restarting") and app_version == target_ver:
+                    latest_entry["status"] = "success"
+                    latest_entry["completed_at"] = now_iso
+                    latest_entry["detail"] = f"Berhasil diperbarui ke versi v{app_version}"
+                    reconciled_logs = json.dumps(logs)
+                    update_status = "idle"
+        except Exception as e:
+            logger.error(f"[OTA] Failed to reconcile update status on heartbeat: {e}")
+
         # Update telemetry, IP, last seen, app version, and status
-        conn.execute(
-            "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ? WHERE id = ?",
-            (now_iso, ip_addr, sys_info, app_version, update_status, device_id),
-        )
+        if reconciled_logs:
+            conn.execute(
+                "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ?, last_update_log = ?, update_lock_acquired_at = NULL WHERE id = ?",
+                (now_iso, ip_addr, sys_info, app_version, update_status, reconciled_logs, device_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ? WHERE id = ?",
+                (now_iso, ip_addr, sys_info, app_version, update_status, device_id),
+            )
 
         # Resolve screen-specific settings
         raw_settings = row["settings"] if "settings" in row.keys() else "{}"
@@ -292,22 +315,31 @@ def player_update_status():
 
         is_terminal = status.startswith("success") or status.startswith("failed") or status.startswith("rolled_back")
 
-        # Update last_update_log if terminal
+        # Update last_update_log with live progress
+        try:
+            raw_logs = row["last_update_log"] if "last_update_log" in row.keys() else "[]"
+            logs = json.loads(raw_logs) if isinstance(raw_logs, str) else (raw_logs or [])
+            if logs:
+                logs[0]["status"] = status
+                if detail:
+                    logs[0]["detail"] = detail
+                logs[0]["updated_at"] = now_iso
+                if is_terminal:
+                    logs[0]["completed_at"] = now_iso
+                    if version:
+                        logs[0]["version"] = version
+            else:
+                logs = [{
+                    "timestamp": now_iso,
+                    "version": version or row["app_version"],
+                    "status": status,
+                    "detail": detail or status,
+                }]
+            logs_json = json.dumps(logs[:10])
+        except Exception:
+            logs_json = row["last_update_log"]
+
         if is_terminal:
-            try:
-                logs = json.loads(row["last_update_log"] or "[]")
-            except Exception:
-                logs = []
-
-            logs.insert(0, {
-                "timestamp": now_iso,
-                "version": version or row["app_version"],
-                "status": status,
-                "detail": detail,
-            })
-            logs = logs[:10]  # Keep last 10 entries
-            logs_json = json.dumps(logs)
-
             new_version = version if status == "success" and version else row["app_version"]
             conn.execute(
                 "UPDATE screens SET update_status = ?, update_lock_acquired_at = NULL, app_version = ?, last_update_log = ? WHERE id = ?",
@@ -315,8 +347,8 @@ def player_update_status():
             )
         else:
             conn.execute(
-                "UPDATE screens SET update_status = ? WHERE id = ?",
-                (status, device_id),
+                "UPDATE screens SET update_status = ?, last_update_log = ? WHERE id = ?",
+                (status, logs_json, device_id),
             )
 
     return jsonify({"success": True})

@@ -316,9 +316,9 @@ def execute_update(
         cleanup_old_versions(keep_count=2)
 
         # 7. Restart service
-        report_status_to_server("restarting", target_version, "Memulai ulang service player...")
+        report_status_to_server("success", target_version, f"Versi v{target_version} berhasil dipasang")
         if gui_progress_cb:
-            gui_progress_cb(98, "Memulai ulang player...")
+            gui_progress_cb(100, "Update selesai! Memulai ulang player...")
 
         time.sleep(1)
         release_lock()

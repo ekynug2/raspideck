@@ -1157,30 +1157,65 @@ function openUpdateScreenModalById(screenId) {
   const m = parseScreenMetrics(s);
   const manifest = state.playerManifest || {};
 
-  let logsHtml = '<div class="text-secondary small py-2">Belum ada riwayat update untuk display ini.</div>';
+  let logsHtml = '<div class="text-secondary small p-3 text-center">Belum ada riwayat update untuk display ini.</div>';
   try {
     const logs = typeof s.last_update_log === 'object' ? s.last_update_log : JSON.parse(s.last_update_log || '[]');
     if (logs && logs.length > 0) {
       logsHtml = `
         <div class="table-responsive">
-          <table class="table table-sm table-vcenter small mb-0">
+          <table class="table table-vcenter card-table table-sm small mb-0">
             <thead>
-              <tr>
-                <th>Waktu</th>
-                <th>Target Versi</th>
-                <th>Status</th>
-                <th>Detail</th>
+              <tr class="text-secondary">
+                <th style="width: 110px;">WAKTU</th>
+                <th style="width: 120px;">TARGET VERSI</th>
+                <th style="width: 120px;">STATUS</th>
+                <th>DETAIL</th>
               </tr>
             </thead>
             <tbody>
-              ${logs.map(l => `
-                <tr>
-                  <td class="text-secondary text-nowrap">${formatRelativeTime(l.timestamp)}</td>
-                  <td><code>v${escapeHtml(l.target_version || l.version || '-')}</code></td>
-                  <td><span class="badge ${l.status === 'success' ? 'bg-success-lt' : (String(l.status).startsWith('failed') ? 'bg-danger-lt' : 'bg-warning-lt')} text-uppercase">${escapeHtml(l.status)}</span></td>
-                  <td class="text-secondary small text-truncate" style="max-width:200px;">${escapeHtml(l.detail || l.action || '-')}</td>
-                </tr>
-              `).join('')}
+              ${logs.map(l => {
+                const sLower = String(l.status || '').toLowerCase();
+                let badgeClass = 'bg-secondary-lt text-secondary';
+                let statusText = (l.status || 'IDLE').toUpperCase();
+                let spinner = '';
+
+                if (sLower === 'success') {
+                  badgeClass = 'bg-success-lt text-success fw-bold';
+                  statusText = 'SUKSES';
+                } else if (sLower === 'pending') {
+                  badgeClass = 'bg-warning-lt text-warning fw-bold';
+                  statusText = 'DIPROSES';
+                } else if (sLower === 'downloading') {
+                  badgeClass = 'bg-info-lt text-info fw-bold';
+                  statusText = 'MENGUNDUH';
+                  spinner = '<span class="spinner-border spinner-border-sm me-1"></span>';
+                } else if (sLower === 'applying') {
+                  badgeClass = 'bg-primary-lt text-primary fw-bold';
+                  statusText = 'MEMASANG';
+                  spinner = '<span class="spinner-border spinner-border-sm me-1"></span>';
+                } else if (sLower === 'restarting') {
+                  badgeClass = 'bg-secondary-lt text-secondary fw-bold';
+                  statusText = 'RESTARTING';
+                } else if (sLower.startsWith('failed')) {
+                  badgeClass = 'bg-danger-lt text-danger fw-bold';
+                  statusText = 'GAGAL';
+                }
+
+                let detailText = l.detail || '';
+                if (!detailText) {
+                  if (l.action === 'trigger_ota') detailText = 'Pembaruan dijadwalkan oleh admin';
+                  else detailText = '-';
+                }
+
+                return `
+                  <tr>
+                    <td class="text-secondary text-nowrap">${formatRelativeTime(l.timestamp)}</td>
+                    <td><span class="badge bg-secondary-lt font-monospace">v${escapeHtml(l.target_version || l.version || '-')}</span></td>
+                    <td><span class="badge ${badgeClass}">${spinner}${escapeHtml(statusText)}</span></td>
+                    <td class="text-body small text-truncate" style="max-width:280px;" title="${escapeHtml(detailText)}">${escapeHtml(detailText)}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -1189,31 +1224,31 @@ function openUpdateScreenModalById(screenId) {
   } catch(e) {}
 
   openModal(`
-    <div class="modal-header">
+    <div class="modal-header py-3">
       <div>
         <h5 class="modal-title fw-bold mb-0">Pembaruan Software (OTA) &bull; ${escapeHtml(s.name || s.id)}</h5>
         <div class="text-secondary small mt-1">Sistem pembaruan over-the-air aman dengan atomic symlink swap & rollback.</div>
       </div>
       <button type="button" class="btn-close" onclick="closeModal()"></button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body p-3">
       <!-- Version Comparison Card -->
       <div class="row g-3 mb-3">
         <div class="col-sm-6">
-          <div class="card bg-body-tertiary border text-center p-3">
+          <div class="card bg-body-tertiary border text-center p-3 h-100 justify-content-center">
             <div class="text-secondary small text-uppercase fw-bold mb-1">Versi Player Saat Ini</div>
-            <div class="fs-2 fw-bold text-body font-monospace">v${escapeHtml(m.appVersion)}</div>
-            <div class="mt-1">
-              <span class="badge ${m.online ? 'bg-success-lt' : 'bg-danger-lt'}">${m.online ? 'ONLINE' : 'OFFLINE'}</span>
+            <div class="fs-1 fw-bold text-body font-monospace">v${escapeHtml(m.appVersion)}</div>
+            <div class="mt-2">
+              <span class="badge ${m.online ? 'bg-success-lt text-success' : 'bg-danger-lt text-danger'}">${m.online ? 'ONLINE' : 'OFFLINE'}</span>
             </div>
           </div>
         </div>
         <div class="col-sm-6">
-          <div class="card bg-body-tertiary border text-center p-3">
+          <div class="card bg-body-tertiary border text-center p-3 h-100 justify-content-center">
             <div class="text-secondary small text-uppercase fw-bold mb-1">Versi Rilis Server</div>
-            <div class="fs-2 fw-bold text-primary font-monospace">v${escapeHtml(m.targetVersion)}</div>
-            <div class="mt-1">
-              <span class="badge ${m.isOutdated ? 'bg-yellow-lt text-warning' : 'bg-success-lt'}">${m.isOutdated ? 'UPDATE TERSEDIA' : 'VERSI TERBARU'}</span>
+            <div class="fs-1 fw-bold text-primary font-monospace">v${escapeHtml(m.targetVersion)}</div>
+            <div class="mt-2">
+              <span class="badge ${m.isOutdated ? 'bg-yellow-lt text-warning' : 'bg-success-lt text-success'}">${m.isOutdated ? 'UPDATE TERSEDIA' : 'VERSI TERBARU'}</span>
             </div>
           </div>
         </div>
@@ -1232,15 +1267,28 @@ function openUpdateScreenModalById(screenId) {
 
       <!-- Package Manifest Details -->
       <div class="card border mb-3">
-        <div class="card-header py-2 bg-body-tertiary">
+        <div class="card-header py-2 bg-body-tertiary d-flex justify-content-between align-items-center">
           <div class="card-title fs-5 fw-bold mb-0">Informasi Paket Pembaruan Server</div>
+          <span class="badge bg-primary-lt font-monospace">v${escapeHtml(manifest.version || m.targetVersion)}</span>
         </div>
-        <div class="card-body p-3 small">
-          <div class="row g-2">
-            <div class="col-sm-6"><strong>Nama Arsip:</strong> <code>${escapeHtml(manifest.filename || 'raspideck-player.tar.gz')}</code></div>
-            <div class="col-sm-6"><strong>Ukuran Paket:</strong> ${manifest.size_bytes ? (manifest.size_bytes / 1024).toFixed(1) + ' KB' : 'N/A'}</div>
-            <div class="col-sm-6"><strong>Kebutuhan Disk:</strong> &ge; ${manifest.min_free_space_mb || 30} MB</div>
-            <div class="col-sm-6"><strong>Checksum SHA-256:</strong> <code class="small text-truncate d-inline-block" style="max-width:180px;">${manifest.sha256 ? manifest.sha256.substring(0, 16) + '...' : 'N/A'}</code></div>
+        <div class="card-body p-3">
+          <div class="row g-3 small">
+            <div class="col-sm-6 d-flex justify-content-between border-bottom pb-2">
+              <span class="text-secondary">Nama Arsip:</span>
+              <code class="text-body">${escapeHtml(manifest.filename || 'raspideck-player.tar.gz')}</code>
+            </div>
+            <div class="col-sm-6 d-flex justify-content-between border-bottom pb-2">
+              <span class="text-secondary">Ukuran Paket:</span>
+              <span class="fw-semibold text-body">${manifest.size_bytes ? (manifest.size_bytes / 1024).toFixed(1) + ' KB' : 'N/A'}</span>
+            </div>
+            <div class="col-sm-6 d-flex justify-content-between">
+              <span class="text-secondary">Kebutuhan Disk:</span>
+              <span class="fw-semibold text-body">&ge; ${manifest.min_free_space_mb || 30} MB</span>
+            </div>
+            <div class="col-sm-6 d-flex justify-content-between">
+              <span class="text-secondary">Checksum SHA-256:</span>
+              <code class="font-monospace text-body" title="${escapeHtml(manifest.sha256 || '')}">${manifest.sha256 ? manifest.sha256.substring(0, 16) + '...' : 'N/A'}</code>
+            </div>
           </div>
         </div>
       </div>
@@ -1250,17 +1298,36 @@ function openUpdateScreenModalById(screenId) {
         <div class="card-header py-2 bg-body-tertiary">
           <div class="card-title fs-5 fw-bold mb-0">Riwayat Audit Pembaruan</div>
         </div>
-        <div class="card-body p-3">
+        <div class="card-body p-0">
           ${logsHtml}
         </div>
       </div>
     </div>
-    <div class="modal-footer d-flex justify-content-between">
+    <div class="modal-footer d-flex justify-content-between align-items-center py-2 px-3">
       <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
-      <button type="button" class="btn btn-primary d-flex align-items-center gap-1" id="btn-trigger-update" ${m.isUpdating ? 'disabled' : ''} onclick="submitScreenUpdate('${s.id}')">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
-        ${m.isOutdated ? `Perbarui ke v${m.targetVersion}` : `Kirim Ulang Update (v${m.targetVersion})`}
-      </button>
+      <div>
+        ${m.isUpdating ? `
+          <button type="button" class="btn btn-warning d-flex align-items-center gap-1" disabled>
+            <span class="spinner-border spinner-border-sm me-1"></span>
+            Sedang Memperbarui...
+          </button>
+        ` : (m.isOutdated ? `
+          <button type="button" class="btn btn-primary d-flex align-items-center gap-1" id="btn-trigger-update" onclick="submitScreenUpdate('${s.id}')">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
+            Perbarui ke v${m.targetVersion}
+          </button>
+        ` : `
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-lt text-success d-flex align-items-center gap-1 py-2 px-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline" width="16" height="16" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+              Sudah Versi Terbaru
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-trigger-update" onclick="submitScreenUpdate('${s.id}')" title="Pasang ulang versi ini">
+              Install Ulang
+            </button>
+          </div>
+        `)}
+      </div>
     </div>
   `, 'modal-lg');
 }

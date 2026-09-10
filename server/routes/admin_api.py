@@ -280,6 +280,7 @@ def update_screen_code(screen_id: str):
             "from_version": row["app_version"] or "2.0",
             "target_version": manifest["version"],
             "status": "pending",
+            "detail": "Pembaruan dijadwalkan oleh admin",
         })
         logs_json = json.dumps(logs[:10])
 
@@ -346,6 +347,7 @@ def update_all_screens():
                 "from_version": r["app_version"] or "2.0",
                 "target_version": target_version,
                 "status": "pending",
+                "detail": "Pembaruan massal dijadwalkan oleh admin",
             })
             logs_json = json.dumps(logs[:10])
 
