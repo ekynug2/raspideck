@@ -269,10 +269,10 @@ def orchestrator_worker(device_id: str) -> None:
     except OSError as e:
         print(f"[player] Initial sync failed: {e}", flush=True)
 
-    # Ensure Windows boot animation displays for at least 3.5 seconds
+    # Brief initial boot phase to allow network handshake
     boot_elapsed = time.time() - boot_start
-    if boot_elapsed < 3.5:
-        time.sleep(3.5 - boot_elapsed)
+    if boot_elapsed < 1.0:
+        time.sleep(1.0 - boot_elapsed)
 
     current_version = -1
 
@@ -325,43 +325,66 @@ def orchestrator_worker(device_id: str) -> None:
                 time.sleep(3)
                 continue
 
-        # State 3: PAIRED with Playlist -> Show Loading Media Screen
+        # State 3: PAIRED with Playlist
         version = playlist.get("version", 0)
         items = playlist.get("items", [])
         total_items = len(items)
 
-        # Show Loading Media screen if playlist is newly loaded or updated
-        if version != current_version:
+        # 1. Check which media items actually need downloading
+        missing_indices: list[int] = []
+        for idx, item in enumerate(items):
+            fname = item.get("filename")
+            if not fname:
+                missing_indices.append(idx)
+                continue
+            lpath = MEDIA_DIR / fname
+            if not lpath.exists() or lpath.stat().st_size == 0:
+                missing_indices.append(idx)
+            elif item.get("sha256") and compute_sha256(lpath) != item.get("sha256"):
+                missing_indices.append(idx)
+
+        needs_download = len(missing_indices) > 0
+
+        # Only show Loading/Downloading screen if there are ACTUALLY files to download!
+        if needs_download:
             SCREEN_APP.show()
             SCREEN_APP.set_loading_media(
-                status="Memuat Media...",
-                detail=f"Menyiapkan {total_items} item konten...",
+                status="Mengunduh Media...",
+                detail=f"Mengunduh {len(missing_indices)} dari {total_items} konten...",
                 progress_pct=5,
             )
 
         local_items = []
+        missing_count = len(missing_indices)
+        downloaded_count = 0
+
         for idx, item in enumerate(items):
             title = item.get("original_name") or item.get("filename")
 
-            def make_progress_cb(item_idx: int, item_title: str):
-                def _cb(downloaded_bytes: int, total_bytes: int):
-                    if total_bytes > 0:
-                        file_pct = int((downloaded_bytes / total_bytes) * 100)
-                        item_fraction = downloaded_bytes / total_bytes
-                        overall = int(((item_idx + item_fraction) / total_items) * 90) + 5
-                        SCREEN_APP.update_progress(
-                            overall,
-                            detail=f"Mengunduh ({item_idx + 1}/{total_items}): {item_title} ({file_pct}%)",
-                        )
-                    else:
-                        overall = int((item_idx / total_items) * 90) + 5
-                        SCREEN_APP.update_progress(
-                            overall,
-                            detail=f"Mengunduh ({item_idx + 1}/{total_items}): {item_title}...",
-                        )
-                return _cb
+            if idx in missing_indices:
+                def make_progress_cb(item_num: int, item_title: str):
+                    def _cb(downloaded_bytes: int, total_bytes: int):
+                        if total_bytes > 0:
+                            file_pct = int((downloaded_bytes / total_bytes) * 100)
+                            item_fraction = downloaded_bytes / total_bytes
+                            overall = int(((item_num + item_fraction) / max(1, missing_count)) * 90) + 5
+                            SCREEN_APP.update_progress(
+                                overall,
+                                detail=f"Mengunduh ({item_num + 1}/{missing_count}): {item_title} ({file_pct}%)",
+                            )
+                        else:
+                            overall = int((item_num / max(1, missing_count)) * 90) + 5
+                            SCREEN_APP.update_progress(
+                                overall,
+                                detail=f"Mengunduh ({item_num + 1}/{missing_count}): {item_title}...",
+                            )
+                    return _cb
 
-            cb = make_progress_cb(idx, title) if (version != current_version) else None
+                cb = make_progress_cb(downloaded_count, title)
+                downloaded_count += 1
+            else:
+                cb = None
+
             local_path = download_media(item, progress_callback=cb)
             if local_path and local_path.exists() and local_path.stat().st_size > 0:
                 local_items.append({**item, "local_path": local_path})
@@ -375,14 +398,15 @@ def orchestrator_worker(device_id: str) -> None:
             time.sleep(3)
             continue
 
-        if version != current_version:
+        if needs_download:
             print(
-                f"[player] Playlist updated: v{version}, {len(local_items)} items ready",
+                f"[player] Playlist media downloaded: v{version}, {len(local_items)} items ready",
                 flush=True,
             )
             SCREEN_APP.update_progress(100, detail="Media siap. Memulai pemutaran...")
-            time.sleep(0.8)
-            current_version = version
+            time.sleep(0.5)
+
+        current_version = version
 
         # Check 24-hour playlist operating schedule
         schedule = playlist.get("schedule")

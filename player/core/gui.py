@@ -297,7 +297,7 @@ class PlayerScreenApp:
             self._redraw_screen()
 
         # Animate Windows circular loader if visible and on relevant screen
-        if self._is_visible and self._current_state in ("BOOT", "LOADING_MEDIA", "WAITING"):
+        if self._is_visible and self._current_state in ("BOOT", "WAITING"):
             self._animate_spinner()
 
         if self._running:
@@ -533,12 +533,8 @@ class PlayerScreenApp:
             tags="static",
         )
 
-        # Windows circular loader ring
-        spinner_y = badge_y + 58
-        self._init_spinner_dots(cx, spinner_y, radius=30.0, num_dots=6)
-
         # Main message
-        msg_y = spinner_y + 50
+        msg_y = badge_y + 45
         self._canvas.create_text(
             cx,
             msg_y,
