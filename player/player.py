@@ -18,7 +18,7 @@ if str(PLAYER_DIR) not in sys.path:
     sys.path.insert(0, str(PLAYER_DIR))
 
 from core.api import api_get, api_post, download_media
-from core.cache import load_cached_playlist, save_cached_playlist
+from core.cache import compute_sha256, load_cached_playlist, save_cached_playlist
 from core.config import (
     APP_VERSION,
     HEARTBEAT_INTERVAL,
