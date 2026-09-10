@@ -27,20 +27,24 @@
   </div>
 
   <!-- Media Filters & Search -->
-  <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-2 mb-3">
-    <div class="btn-group w-100 w-sm-auto">
-      <button type="button" class="btn btn-sm btn-outline-secondary active" id="filter-media-all" onclick="setMediaFilter('all')">All Assets</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="filter-media-video" onclick="setMediaFilter('video')">Videos Only</button>
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="filter-media-image" onclick="setMediaFilter('image')">Images Only</button>
+  <div class="row align-items-center g-2 mb-3">
+    <div class="col-12 col-sm-auto">
+      <div class="btn-group w-100 w-sm-auto">
+        <button type="button" class="btn btn-sm btn-outline-secondary active" id="filter-media-all" onclick="setMediaFilter('all')">All Assets</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="filter-media-video" onclick="setMediaFilter('video')">Videos Only</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="filter-media-image" onclick="setMediaFilter('image')">Images Only</button>
+      </div>
     </div>
-    <div class="input-icon w-100 w-sm-auto">
-      <span class="input-icon-addon">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
-          <circle cx="10" cy="10" r="7" />
-          <line x1="21" y1="21" x2="15" y2="15" />
-        </svg>
-      </span>
-      <input type="text" id="media-search" class="form-control form-control-sm" placeholder="Search media..." oninput="renderMedia()">
+    <div class="col-12 col-sm-auto ms-sm-auto">
+      <div class="input-icon w-100 w-sm-auto">
+        <span class="input-icon-addon">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <circle cx="10" cy="10" r="7" />
+            <line x1="21" y1="21" x2="15" y2="15" />
+          </svg>
+        </span>
+        <input type="text" id="media-search" class="form-control form-control-sm" placeholder="Search media..." oninput="renderMedia()">
+      </div>
     </div>
   </div>
 

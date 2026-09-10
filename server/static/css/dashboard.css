@@ -43,7 +43,7 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 240px;
+  width: 210px;
   max-width: 100%;
 }
 .input-icon .input-icon-addon {
@@ -754,6 +754,10 @@ body {
   .container-xl {
     padding-left: 0.65rem !important;
     padding-right: 0.65rem !important;
+  }
+
+  .input-icon {
+    width: 100% !important;
   }
 
   /* Compact 2x2 KPI Cards */
