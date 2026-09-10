@@ -445,18 +445,18 @@ function renderScreens() {
             </div>
 
             <!-- Per-Display Audio & Rotation Meta Strip -->
-            <div class="d-flex align-items-center justify-content-between px-2 py-1 rounded bg-body-tertiary border small">
+            <div class="d-flex align-items-center justify-content-between px-2.5 py-1.5 rounded bg-body-tertiary border small">
               <div class="d-flex align-items-center gap-3">
-                <span class="d-flex align-items-center gap-1 text-secondary" title="Volume Audio">
+                <span class="d-flex align-items-center gap-1.5 text-secondary" title="Volume Audio Hardware">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>
-                  <span class="text-body fw-medium">${m.settings.volume}%</span>
+                  <span class="badge ${m.settings.volume === 0 ? 'bg-secondary-lt text-secondary' : 'bg-blue-lt text-primary'} font-monospace fw-bold px-1.5 py-0.5" style="font-size: 0.72rem;">${m.settings.volume}%</span>
                 </span>
-                <span class="d-flex align-items-center gap-1 text-secondary" title="Orientasi Layar">
+                <span class="d-flex align-items-center gap-1.5 text-secondary" title="Orientasi Layar Monitor">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="16" height="16" rx="2" /><line x1="8" y1="4" x2="8" y2="20" /></svg>
-                  <span class="text-body fw-medium text-uppercase">${escapeHtml(m.settings.rotation)}</span>
+                  <span class="badge bg-secondary-lt text-secondary font-monospace fw-bold text-uppercase px-1.5 py-0.5" style="font-size: 0.72rem;">${escapeHtml(m.settings.rotation)}</span>
                 </span>
               </div>
-              <button class="btn btn-sm btn-ghost-primary px-2 py-0" title="Ubah Pengaturan Display" onclick="openScreenSettingsModalById('${s.id}')">
+              <button class="btn btn-sm btn-ghost-primary px-2 py-0 fw-medium" title="Ubah Pengaturan Display" onclick="openScreenSettingsModalById('${s.id}')">
                 Ubah
               </button>
             </div>
@@ -720,6 +720,7 @@ function openScreenDetailsModalById(screenId) {
   const s = state.screens.find(x => x.id === screenId);
   if (!s) return;
   const m = parseScreenMetrics(s);
+  const displayIp = (m.sys && m.sys.local_ip && !m.sys.local_ip.includes(':')) ? m.sys.local_ip : (s.ip_address || '127.0.0.1');
 
   openModal(`
     <div class="modal-header">
@@ -739,9 +740,9 @@ function openScreenDetailsModalById(screenId) {
           <div class="card card-sm bg-body-tertiary border">
             <div class="card-body p-3">
               <div class="text-secondary small fw-bold text-uppercase mb-1">Device Hardware ID</div>
-              <div class="d-flex align-items-center justify-content-between">
-                <code class="fw-bold fs-5 text-body">${s.id}</code>
-                <button class="btn btn-sm btn-icon btn-ghost-secondary" title="Copy Hardware ID" onclick="copyToClipboard('${s.id}')">
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <code class="fw-bold fs-5 text-body text-truncate d-block flex-grow-1 min-w-0" title="${escapeHtml(s.id)}">${escapeHtml(s.id)}</code>
+                <button class="btn btn-sm btn-icon btn-ghost-secondary flex-shrink-0" title="Copy Hardware ID" onclick="copyToClipboard('${escapeHtml(s.id)}')">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path></svg>
                 </button>
               </div>
@@ -752,10 +753,13 @@ function openScreenDetailsModalById(screenId) {
           <div class="card card-sm bg-body-tertiary border">
             <div class="card-body p-3">
               <div class="text-secondary small fw-bold text-uppercase mb-1">Terminal IP Address</div>
-              <div class="d-flex align-items-center justify-content-between">
-                <span class="fw-bold fs-5 text-body font-monospace">${s.ip_address || '127.0.0.1'}</span>
-                <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-icon btn-ghost-secondary" title="Copy IP" onclick="copyToClipboard('${s.ip_address || '127.0.0.1'}')">
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <div class="min-w-0 flex-grow-1" style="overflow: hidden;">
+                  <span class="fw-bold fs-5 text-body font-monospace text-truncate d-block" title="${escapeHtml(displayIp)}" style="letter-spacing: -0.3px;">${escapeHtml(displayIp)}</span>
+                  ${(s.ip_address && s.ip_address !== displayIp) ? `<div class="text-secondary small font-monospace text-truncate" style="font-size: 0.72rem;" title="IPv6: ${escapeHtml(s.ip_address)}">IPv6: ${escapeHtml(s.ip_address)}</div>` : ''}
+                </div>
+                <div class="d-flex gap-1 flex-shrink-0">
+                  <button class="btn btn-sm btn-icon btn-ghost-secondary" title="Copy IP" onclick="copyToClipboard('${escapeHtml(displayIp)}')">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path></svg>
                   </button>
                   <button class="btn btn-sm btn-outline-info" onclick="pingScreenById('${s.id}')">
@@ -876,20 +880,20 @@ function openScreenDetailsModalById(screenId) {
         <div class="card-body p-3">
           <div class="row g-3">
             <div class="col-sm-3">
-              <div class="text-secondary small">Audio Volume</div>
-              <div class="fw-bold fs-4 text-body">${m.settings.volume}%</div>
+              <div class="text-secondary small mb-1">Audio Volume</div>
+              <div><span class="badge ${m.settings.volume === 0 ? 'bg-secondary-lt border border-secondary-subtle text-secondary' : 'bg-blue-lt border border-blue-subtle text-primary'} font-monospace fw-bold fs-5 px-2.5 py-1">${m.settings.volume}%</span></div>
             </div>
             <div class="col-sm-3">
-              <div class="text-secondary small">Screen Rotation</div>
-              <div class="fw-bold fs-4 text-body text-uppercase">${escapeHtml(m.settings.rotation)}</div>
+              <div class="text-secondary small mb-1">Screen Rotation</div>
+              <div><span class="badge bg-secondary-lt border border-secondary-subtle text-secondary font-monospace fw-bold fs-5 px-2.5 py-1 text-uppercase">${escapeHtml(m.settings.rotation)}</span></div>
             </div>
             <div class="col-sm-3">
-              <div class="text-secondary small">Polling Interval</div>
-              <div class="fw-bold fs-4 text-body">${m.settings.heartbeat_interval || 10}s</div>
+              <div class="text-secondary small mb-1">Polling Interval</div>
+              <div><span class="badge bg-secondary-lt border border-secondary-subtle text-secondary font-monospace fw-bold fs-5 px-2.5 py-1">${m.settings.heartbeat_interval || 10}s</span></div>
             </div>
             <div class="col-sm-3">
-              <div class="text-secondary small">Software Version</div>
-              <div class="fw-bold fs-4 text-body font-monospace">v${escapeHtml(m.appVersion)}</div>
+              <div class="text-secondary small mb-1">Software Version</div>
+              <div><span class="badge ${m.isOutdated ? 'bg-warning-lt border border-warning-subtle text-warning' : 'bg-success-lt border border-success-subtle text-success'} font-monospace fw-bold fs-5 px-2.5 py-1">v${escapeHtml(m.appVersion)}</span></div>
             </div>
           </div>
         </div>
@@ -1087,6 +1091,32 @@ async function submitUnpairScreen(screenId) {
 }
 
 // --- MODAL: PER-DISPLAY HARDWARE SETTINGS ---
+window.updateVolumeSliderDisplay = function(val) {
+  const badge = document.getElementById('val-volume-display');
+  const iconSpan = document.getElementById('volume-icon-indicator');
+  if (!badge) return;
+  const v = parseInt(val, 10);
+  if (v === 0) {
+    badge.className = 'badge bg-secondary-lt border border-secondary-subtle text-secondary font-monospace px-2.5 py-1 fw-bold';
+    badge.textContent = '0% (Mute)';
+    if (iconSpan) {
+      iconSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="16" y1="9" x2="22" y2="15" /><line x1="22" y1="9" x2="16" y2="15" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>`;
+    }
+  } else if (v < 50) {
+    badge.className = 'badge bg-blue-lt border border-blue-subtle text-primary font-monospace px-2.5 py-1 fw-bold';
+    badge.textContent = v + '%';
+    if (iconSpan) {
+      iconSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>`;
+    }
+  } else {
+    badge.className = 'badge bg-blue-lt border border-blue-subtle text-primary font-monospace px-2.5 py-1 fw-bold';
+    badge.textContent = v + '%';
+    if (iconSpan) {
+      iconSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" /><path d="M17.7 5a9 9 0 0 1 0 14" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>`;
+    }
+  }
+};
+
 function openScreenSettingsModalById(screenId) {
   const s = state.screens.find(x => x.id === screenId);
   if (!s) return;
@@ -1106,13 +1136,18 @@ function openScreenSettingsModalById(screenId) {
         <div class="card-body p-3">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <label class="form-label fw-bold mb-0 d-flex align-items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>
+              <span id="volume-icon-indicator" class="d-inline-flex align-items-center">
+                ${m.settings.volume === 0
+                  ? `<svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="16" y1="9" x2="22" y2="15" /><line x1="22" y1="9" x2="16" y2="15" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>`
+                  : `<svg xmlns="http://www.w3.org/2000/svg" class="icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" />${m.settings.volume > 50 ? '<path d="M17.7 5a9 9 0 0 1 0 14" />' : ''}<path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>`
+                }
+              </span>
               Volume Audio Hardware (ALSA)
             </label>
-            <span class="badge bg-primary fs-5" id="val-volume-display">${m.settings.volume}%</span>
+            <span class="badge ${m.settings.volume === 0 ? 'bg-secondary-lt border border-secondary-subtle text-secondary' : 'bg-blue-lt border border-blue-subtle text-primary'} font-monospace px-2.5 py-1 fw-bold" style="font-size: 0.95rem; letter-spacing: 0.3px;" id="val-volume-display">${m.settings.volume === 0 ? '0% (Mute)' : m.settings.volume + '%'}</span>
           </div>
-          <input type="range" class="form-range" id="input-volume" min="0" max="100" step="5" value="${m.settings.volume}" oninput="document.getElementById('val-volume-display').textContent = this.value + '%'">
-          <div class="d-flex justify-content-between text-secondary small">
+          <input type="range" class="form-range" id="input-volume" min="0" max="100" step="5" value="${m.settings.volume}" oninput="updateVolumeSliderDisplay(this.value)">
+          <div class="d-flex justify-content-between text-secondary small mt-1" style="font-size: 0.78rem;">
             <span>0% (Mute)</span>
             <span>50%</span>
             <span>100% (Maksimal)</span>
