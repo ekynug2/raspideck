@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+  <title>RaspiDeck &bull; Digital Signage Hub</title>
+
+  <!-- Tabler Core CSS & Icons (Local Vendor with CDN fallback) -->
+  <link href="/static/vendor/tabler/css/tabler.min.css" rel="stylesheet"/>
+  <link href="/static/vendor/tabler/css/tabler-icons.min.css" rel="stylesheet"/>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Custom Stylesheet -->
+  <link href="/static/css/dashboard.css" rel="stylesheet"/>
+</head>
+<body>
+  <script>
+    // Set theme immediately before rendering to avoid flash
+    const savedTheme = localStorage.getItem("tablerTheme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.body.setAttribute("data-bs-theme", savedTheme);
+  </script>
+
+  <div class="page">
+    <!-- TOP NAVBAR -->
+    {% include 'partials/navbar.html' %}
+
+    <!-- PAGE WRAPPER -->
+    <div class="page-wrapper">
+      <!-- PAGE BODY -->
+      <div class="page-body">
+        <div class="container-xl">
+          <!-- 1. TAB VIEW: DISPLAYS -->
+          {% include 'partials/tab_screens.html' %}
+
+          <!-- 2. TAB VIEW: PLAYLISTS -->
+          {% include 'partials/tab_playlists.html' %}
+
+          <!-- 3. TAB VIEW: MEDIA LIBRARY -->
+          {% include 'partials/tab_media.html' %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS, TOASTS & FLOATING PANELS -->
+  {% include 'partials/modals.html' %}
+
+  <!-- BOOTSTRAP & TABLER JAVASCRIPT -->
+  <script src="/static/vendor/tabler/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/vendor/tabler/js/tabler.min.js"></script>
+
+  <!-- MODULAR JAVASCRIPT -->
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/screens.js"></script>
+  <script src="/static/js/playlists.js"></script>
+  <script src="/static/js/media.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!-- TAB 1: DISPLAYS -->
+<div id="view-screens" class="tab-view-panel">
+  <!-- DISPLAYS KPI CARDS -->
+  {% include 'partials/kpi_cards.html' %}
+
+  <!-- PENDING PAIRING CALLOUT CONTAINER (Only in Displays section) -->
+  <div id="unpaired-container" class="mb-3"></div>
+
+  <!-- OTA UPDATE ALERT CONTAINER -->
+  <div id="ota-update-alert-container" class="mb-3"></div>
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <h2 class="h3 fw-bold mb-1">Connected Displays</h2>
+      <div class="text-secondary small">Monitor hardware telemetry, screen pairing, display settings, and OTA updates.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <div class="input-icon">
+        <span class="input-icon-addon">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+            <circle cx="10" cy="10" r="7" />
+            <line x1="21" y1="21" x2="15" y2="15" />
+          </svg>
+        </span>
+        <input type="text" id="screens-search" class="form-control" placeholder="Search displays..." oninput="renderScreens()">
+      </div>
+      <button class="btn btn-outline-primary d-none" id="btn-batch-update" onclick="openBatchUpdateModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
+        Update All Screens (<span id="batch-update-count">0</span>)
+      </button>
+      <button class="btn btn-primary" onclick="openManualPairModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Pair Display by Code
+      </button>
+    </div>
+  </div>
+
+  <!-- Displays Grid -->
+  <div class="row row-deck row-cards" id="screens-grid">
+    <!-- Dynamically rendered by screens.js -->
+  </div>
+</div>

@@ -1,0 +1,30 @@
+services:
+  raspideck:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: raspideck-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - MEDIA_DIR=${MEDIA_DIR}
+      - DB_PATH=${DB_PATH}
+      - MAX_CONTENT_LENGTH=${MAX_CONTENT_LENGTH}
+      - HTTPS_ONLY=${HTTPS_ONLY}
+    volumes:
+      - ./data:/data
+      - ./server:/app
+
+  # Cloudflare Tunnel
+  # In Cloudflare Zero Trust Dashboard, point raspideck.padangmerdeka.com -> http://raspideck:8000
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: raspideck-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - raspideck
+

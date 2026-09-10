@@ -1,0 +1,62 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+server.md
+player.md
+akses.md
+tasklist.md
+new-plan.md
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+deck.db
+server/deck.db
+
+# Media files & uploads
+data/
+media/
+server/media/
+player/media/
+thumbnails/
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.webm
+
+# Generated OTA release packages & staging
+server/updates/
+*.tar.gz
+*.tar
+*.zip
+.staging/
+.backup/
+.update.lock
+settings.json
+device_token.txt
+playlist_cache.json
+*.log
+
+# Python cache & virtualenvs
+__pycache__/
+*.py[cod]
+*.pyo
+.ruff_cache/
+.pytest_cache/
+venv/
+.venv/
+
+# Large images / Generated splash
+logo-badge.png
+splash.png
+
+# Operating System artifacts
+.DS_Store
+Thumbs.db
+nul

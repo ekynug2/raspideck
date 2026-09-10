@@ -1,0 +1,95 @@
+<!-- DISPLAYS KPI CARDS -->
+<div class="row row-deck row-cards mb-4">
+  <!-- Stat 1: Displays Online -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-success text-white avatar rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="fw-bold fs-2 text-truncate text-success" id="stat-screens-online">0 Online</div>
+            <div class="text-secondary small" id="stat-screens-total">Dari 0 Layar Terpasang</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat 2: Displays Offline -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-danger text-white avatar rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M3 3l18 18" />
+                <path d="M19 19h-14a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2m4 0h10a2 2 0 0 1 2 2v7" />
+                <path d="M8 21h8" />
+                <path d="M12 17v4" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="fw-bold fs-2 text-truncate" id="stat-screens-offline">0 Offline</div>
+            <div class="text-secondary small">Terminal Tidak Aktif</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat 3: Pending Approval -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-warning text-white avatar rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M12 9v2m0 4v.01" />
+                <path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="fw-bold fs-2 text-truncate" id="stat-screens-pending">0 Layar</div>
+            <div class="text-secondary small">Menunggu Pairing Approval</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat 4: Last Heartbeat Sync -->
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-primary text-white avatar rounded-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+                <circle cx="12" cy="12" r="9" />
+                <polyline points="12 7 12 12 15 15" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="fw-bold fs-2 text-truncate font-monospace" id="stat-last-sync">--:--:--</div>
+            <div class="text-secondary small">Sinkronisasi Terakhir</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
