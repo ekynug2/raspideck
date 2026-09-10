@@ -43,7 +43,7 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 175px;
+  width: 145px;
   max-width: 100%;
 }
 .input-icon .input-icon-addon {
@@ -51,7 +51,7 @@ body {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 2.1rem;
+  width: 1.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,16 +60,16 @@ body {
   color: var(--tblr-secondary, #626976);
 }
 .input-icon .input-icon-addon svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 .input-icon input.form-control,
 .input-icon input.form-control-sm {
-  padding-left: 2.05rem !important;
-  padding-right: 0.5rem !important;
-  height: 36px;
+  padding-left: 1.85rem !important;
+  padding-right: 0.4rem !important;
+  height: 34px;
   line-height: normal;
-  font-size: 0.825rem;
+  font-size: 0.8rem;
 }
 
 /* Media Thumbnail Preview Card */
