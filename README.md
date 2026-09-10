@@ -402,6 +402,8 @@ The OTA update engine ([`player/core/updater.py`](player/core/updater.py) and [`
 | `MEDIA_DIR` | `/data/media` | Directory where uploaded videos/images are stored. |
 | `UPDATES_DIR` | `/data/updates` | Directory where OTA `.tar.gz` packages are stored. |
 | `MAX_CONTENT_LENGTH` | `100` | Max file upload size in Megabytes (e.g. `100` = 100MB). |
+| `HTTPS_ONLY` | `false` | Sets secure flag on session cookies when served via HTTPS. |
+| `CORS_ORIGINS` | *(Local & LAN)* | Allowed origins / regex for `/api/*` (comma-separated or JSON list). |
 | `PORT` | `8000` | HTTP port the server listens on. |
 
 ### Player Options (`/boot/raspideck.txt` or Systemd Environment)

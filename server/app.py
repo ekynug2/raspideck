@@ -22,6 +22,7 @@ from config import (  # noqa: E402
     ADMIN_PASSWORD,
     ALLOWED_EXTENSIONS,
     BASE_DIR,
+    CORS_ORIGINS,
     DB_PATH,
     MAX_CONTENT_LENGTH,
     MEDIA_DIR,
@@ -54,15 +55,10 @@ def create_app() -> Flask:
     from werkzeug.middleware.proxy_fix import ProxyFix
     flask_app.wsgi_app = ProxyFix(flask_app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-    # CORS — allow cross-origin API calls (required for Cloudflare Tunnel and LAN players)
+    # CORS — allow cross-origin API calls (configurable via CORS_ORIGINS env)
     CORS(
         flask_app,
-        resources={r"/api/*": {"origins": [
-            "https://raspideck.padangmerdeka.com",
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            r"http://192\.168\..*",
-        ]}},
+        resources={r"/api/*": {"origins": CORS_ORIGINS}},
         supports_credentials=True,
     )
 
@@ -96,6 +92,7 @@ __all__ = [
     "ADMIN_PASSWORD",
     "ALLOWED_EXTENSIONS",
     "BASE_DIR",
+    "CORS_ORIGINS",
     "DB_PATH",
     "MEDIA_DIR",
     "SECRET_KEY",

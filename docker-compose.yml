@@ -14,12 +14,13 @@ services:
       - DB_PATH=${DB_PATH}
       - MAX_CONTENT_LENGTH=${MAX_CONTENT_LENGTH}
       - HTTPS_ONLY=${HTTPS_ONLY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
     volumes:
       - ./data:/data
       - ./server:/app
 
   # Cloudflare Tunnel
-  # In Cloudflare Zero Trust Dashboard, point raspideck.padangmerdeka.com -> http://raspideck:8000
+  # In Cloudflare Zero Trust Dashboard, point your domain / public hostname -> http://raspideck:8000
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: raspideck-tunnel
