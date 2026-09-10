@@ -17,7 +17,7 @@ PLAYER_DIR = Path(__file__).resolve().parent
 if str(PLAYER_DIR) not in sys.path:
     sys.path.insert(0, str(PLAYER_DIR))
 
-from core.api import api_post, download_media
+from core.api import api_get, api_post, download_media
 from core.cache import load_cached_playlist, save_cached_playlist
 from core.config import (
     APP_VERSION,
@@ -31,6 +31,7 @@ from core.gui import PlayerScreenApp
 from core.playback import (
     play_image,
     play_video,
+    request_skip,
     stop_playback,
 )
 from core.settings import (
@@ -57,7 +58,12 @@ SCREEN_APP = PlayerScreenApp()
 
 
 def handle_remote_command(cmd: str) -> None:
-    """Handle remote command from dashboard (restart player or reboot pi)."""
+    """Handle remote command from dashboard (skip media, restart player, or reboot pi)."""
+    if cmd == "skip":
+        print("[player] Received SKIP command from server. Skipping current media...", flush=True)
+        request_skip()
+        return
+
     stop_playback()
     if cmd == "reboot":
         print("[player] Received REBOOT command from server. Rebooting system...", flush=True)
@@ -71,7 +77,7 @@ def handle_remote_command(cmd: str) -> None:
             pass
         time.sleep(1.5)
         os.system("sudo reboot")
-    else:  # restart
+    elif cmd == "restart":
         print("[player] Received RESTART command from server. Restarting player...", flush=True)
         try:
             SCREEN_APP.show()
@@ -84,6 +90,22 @@ def handle_remote_command(cmd: str) -> None:
         time.sleep(1.5)
         os.system("sudo systemctl restart raspideck &")
         sys.exit(0)
+
+
+def command_worker(device_id: str) -> None:
+    """Fast background thread polling remote commands (skip, restart, reboot) with low latency."""
+    while True:
+        try:
+            load_server_url()
+            resp = api_get(f"/api/player/command?device_id={device_id}")
+            if resp and resp.get("command"):
+                cmd = resp.get("command")
+                handle_remote_command(cmd)
+                if cmd in ("reboot", "restart"):
+                    return
+        except Exception:
+            pass
+        time.sleep(1.5)
 
 
 def is_within_schedule(schedule: dict[str, Any] | None) -> tuple[bool, str]:
@@ -139,8 +161,10 @@ def heartbeat_worker(device_id: str) -> None:
                 },
             )
             if resp and resp.get("command"):
-                handle_remote_command(resp.get("command"))
-                return
+                cmd = resp.get("command")
+                handle_remote_command(cmd)
+                if cmd in ("reboot", "restart"):
+                    return
 
             # 1. Synchronize Display Settings
             if resp and resp.get("settings"):
@@ -221,11 +245,16 @@ def orchestrator_worker(device_id: str) -> None:
     global IS_ONLINE, LATEST_PAIRING_CODE, LATEST_PLAYLIST, LATEST_STATUS
     print(f"[player] Orchestrator started for device: {device_id}", flush=True)
 
-    # 1. Start telemetry daemon thread
+    # 1. Start telemetry daemon and fast command poller threads
     hb_thread = threading.Thread(
         target=heartbeat_worker, args=(device_id,), daemon=True
     )
     hb_thread.start()
+
+    cmd_thread = threading.Thread(
+        target=command_worker, args=(device_id,), daemon=True
+    )
+    cmd_thread.start()
 
     # 2. Boot phase: display Windows boot screen with rotating dots loader
     boot_start = time.time()

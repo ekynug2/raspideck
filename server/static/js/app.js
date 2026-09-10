@@ -45,7 +45,7 @@ function toggleTheme() {
   document.body.setAttribute("data-bs-theme", next);
   localStorage.setItem("tablerTheme", next);
   initThemeIcons();
-  showToast(`Switched to ${next} theme`, 'info');
+  showToast(`Beralih ke tema ${next === 'dark' ? 'Gelap' : 'Terang'}`, 'info');
 }
 
 // --- NAVIGATION TABS ---
@@ -90,7 +90,7 @@ async function api(endpoint, options = {}) {
     return await res.json();
   } catch (err) {
     console.error('API Error:', err);
-    showToast('Connection error to signage server', 'danger');
+    showToast('Koneksi ke server signage terputus', 'danger');
     return null;
   }
 }
@@ -112,7 +112,7 @@ async function handleManualSync(btn) {
   ]);
   if (typeof fetchPlaylists === 'function') await fetchPlaylists();
   if (icon) icon.style.animation = '';
-  showToast('Displays and playlists synchronized', 'success');
+  showToast('Data display dan playlist berhasil disinkronkan', 'success');
 }
 
 // --- ACTIONS & BASE MODALS ---
@@ -202,31 +202,68 @@ document.addEventListener('DOMContentLoaded', () => {
 function copyToClipboard(text) {
   if (!text) return;
   navigator.clipboard.writeText(text).then(() => {
-    showToast('Link copied to clipboard', 'info');
+    showToast('Tautan berhasil disalin ke clipboard', 'info');
   }).catch(() => {
-    showToast('Failed to copy to clipboard', 'warning');
+    showToast('Gagal menyalin tautan ke clipboard', 'warning');
   });
 }
 
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
+function showToast(message, type = 'info', title = null) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const normalizedType = (type === 'error') ? 'danger' : type;
+
+  const defaultTitles = {
+    success: 'Berhasil',
+    danger: 'Gagal',
+    warning: 'Perhatian',
+    info: 'Informasi'
+  };
+  const resolvedTitle = title || defaultTitles[normalizedType] || 'Notifikasi';
+
+  const icons = {
+    success: `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>`,
+    danger: `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>`,
+    warning: `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01" /><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75" /></svg>`,
+    info: `<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>`
+  };
 
   const toast = document.createElement('div');
-  toast.className = `alert alert-${type} alert-important alert-dismissible toast-item mb-0 fade show`;
+  toast.className = `toast-item toast-${normalizedType}`;
   toast.setAttribute('role', 'alert');
   toast.innerHTML = `
-    <div class="d-flex align-items-center">
-      <div class="flex-grow-1 small fw-medium">${escapeHtml(message)}</div>
-      <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="toast-icon-wrapper">
+      ${icons[normalizedType] || icons.info}
+    </div>
+    <div class="toast-content">
+      <div class="toast-title">${escapeHtml(resolvedTitle)}</div>
+      <div class="toast-message">${escapeHtml(message)}</div>
+    </div>
+    <button type="button" class="toast-close-btn" aria-label="Tutup notifikasi">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+    </button>
+    <div class="toast-progress">
+      <div class="toast-progress-bar"></div>
     </div>
   `;
 
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.classList.remove('show');
+  const closeBtn = toast.querySelector('.toast-close-btn');
+  const dismiss = () => {
+    if (toast.classList.contains('toast-hiding')) return;
+    toast.classList.add('toast-hiding');
     setTimeout(() => toast.remove(), 250);
-  }, 3500);
+  };
+  closeBtn.addEventListener('click', dismiss);
+
+  container.appendChild(toast);
+
+  // Auto dismiss after 3.5 seconds
+  setTimeout(dismiss, 3500);
 }
 
 function formatRelativeTime(isoStr) {

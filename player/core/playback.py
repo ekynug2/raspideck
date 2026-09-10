@@ -2,11 +2,27 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 
 from core.config import POLL_INTERVAL
 from core.screens import generate_pairing_image, generate_waiting_image
+
+# Skip event flag to abort current playback and advance immediately
+SKIP_REQUESTED = threading.Event()
+
+
+def request_skip() -> None:
+    """Signal active media playback to stop immediately and advance to next playlist item."""
+    print("[player-playback] Skip signal received! Aborting current media...", flush=True)
+    SKIP_REQUESTED.set()
+    if _VLC_AVAILABLE and VLC_PLAYER is not None:
+        try:
+            VLC_PLAYER.stop()
+        except Exception:
+            pass
+
 
 try:
     import platform
@@ -51,10 +67,16 @@ except (ImportError, OSError, AttributeError) as e:
 
 
 def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
-    """Load media into VLC player, play fullscreen, and wait until ended."""
+    """Load media into VLC player, play fullscreen, and wait until ended or skipped."""
+    SKIP_REQUESTED.clear()
     if not _VLC_AVAILABLE or VLC_PLAYER is None or VLC_INSTANCE is None:
         print(f"[player-mock] Playing: {path.name}", flush=True)
-        time.sleep(2)
+        end_t = time.time() + 2
+        while time.time() < end_t:
+            if SKIP_REQUESTED.is_set():
+                SKIP_REQUESTED.clear()
+                break
+            time.sleep(0.05)
         return
 
     media = VLC_INSTANCE.media_new_path(str(path))  # type: ignore[union-attr]
@@ -77,6 +99,13 @@ def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
     # Wait for playback to start (max 5s)
     wait = 0
     while VLC_PLAYER.get_state() not in _WAIT_STATES:
+        if SKIP_REQUESTED.is_set():
+            SKIP_REQUESTED.clear()
+            try:
+                VLC_PLAYER.stop()
+            except Exception:
+                pass
+            return
         time.sleep(0.05)
         wait += 1
         if wait > 100:
@@ -88,8 +117,12 @@ def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
             return
 
     start_time = time.time()
-    # Wait until ended or error (with max duration safeguard)
+    # Wait until ended, error, or skip requested
     while VLC_PLAYER.get_state() != _STATE_ENDED:
+        if SKIP_REQUESTED.is_set():
+            print(f"[player] Skip requested: advancing past {path.name}", flush=True)
+            SKIP_REQUESTED.clear()
+            break
         if VLC_PLAYER.get_state() == _STATE_ERROR:
             print(f"[player] Error playing: {path.name}", flush=True)
             break
@@ -102,14 +135,20 @@ def vlc_play_and_wait(path: Path, max_duration: int = 0) -> None:
         VLC_PLAYER.stop()
     except Exception:
         pass
-    time.sleep(0.2)
+    time.sleep(0.15)
 
 
 def play_image(path: Path, duration: int) -> None:
-    """Show image fullscreen for duration seconds via VLC without closing window."""
+    """Show image fullscreen for duration seconds via VLC without closing window (interruptible by skip)."""
+    SKIP_REQUESTED.clear()
     if not _VLC_AVAILABLE or VLC_PLAYER is None or VLC_INSTANCE is None:
         print(f"[player-mock] Showing image {path.name} for {duration}s", flush=True)
-        time.sleep(min(duration, 2))
+        end_t = time.time() + min(duration, 2)
+        while time.time() < end_t:
+            if SKIP_REQUESTED.is_set():
+                SKIP_REQUESTED.clear()
+                break
+            time.sleep(0.05)
         return
 
     media = VLC_INSTANCE.media_new_path(str(path))  # type: ignore[union-attr]
@@ -119,8 +158,15 @@ def play_image(path: Path, duration: int) -> None:
         VLC_PLAYER.set_fullscreen(True)
     VLC_PLAYER.play()
 
-    # Image displays for duration seconds
-    time.sleep(duration)
+    # Wait for image duration with responsive skip check
+    end_t = time.time() + duration
+    while time.time() < end_t:
+        if SKIP_REQUESTED.is_set():
+            print(f"[player] Skip requested: advancing past image {path.name}", flush=True)
+            SKIP_REQUESTED.clear()
+            break
+        time.sleep(0.05)
+
     try:
         VLC_PLAYER.stop()
     except Exception:
@@ -156,7 +202,8 @@ def show_pairing_screen(code: str) -> None:
 
 
 def stop_playback() -> None:
-    """Stop active playback gracefully."""
+    """Stop active playback gracefully and signal any wait loops."""
+    SKIP_REQUESTED.set()
     if _VLC_AVAILABLE and VLC_PLAYER is not None:
         try:
             VLC_PLAYER.stop()

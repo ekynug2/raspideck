@@ -280,21 +280,22 @@ function renderScreens() {
 
     return `
       <div class="col-md-6 col-xl-4">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 shadow-sm screen-player-card">
           <!-- CARD HEADER -->
-          <div class="card-header d-flex align-items-center justify-content-between py-3">
-            <div class="d-flex align-items-center gap-2">
+          <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
+            <div class="d-flex align-items-center gap-2 min-w-0">
               <span class="status-dot status-dot-animated ${m.online ? 'status-green status-dot-pulse' : 'status-red status-dot-pulse-red'}" title="${m.online ? 'Online' : 'Offline / Mati'}"></span>
-              <div>
+              <div class="min-w-0">
                 <div class="d-flex align-items-center gap-2">
-                  <h3 class="card-title fw-bold mb-0 text-truncate" style="max-width:170px;">${escapeHtml(s.name || s.id)}</h3>
-                  ${versionBadge}
+                  <h3 class="card-title fw-bold mb-0 text-truncate" style="max-width: 170px;" title="${escapeHtml(s.name || s.id)}">${escapeHtml(s.name || s.id)}</h3>
                 </div>
-                <div class="text-secondary small font-monospace">${s.ip_address || '127.0.0.1'}</div>
+                <div class="text-secondary small font-monospace" style="font-size: 0.75rem;">${s.ip_address || '127.0.0.1'}</div>
               </div>
             </div>
-            <div class="dropdown">
-              <button class="btn btn-icon btn-ghost-secondary rounded-circle" onclick="toggleScreenDropdown(event)" aria-label="Screen options">
+            <div class="d-flex align-items-center gap-2">
+              ${versionBadge}
+              <div class="dropdown">
+                <button class="btn btn-icon btn-ghost-secondary rounded-circle" onclick="toggleScreenDropdown(event)" aria-label="Screen options">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
                     <circle cx="12" cy="12" r="1"></circle>
                     <circle cx="12" cy="19" r="1"></circle>
@@ -302,6 +303,11 @@ function renderScreens() {
                   </svg>
                 </button>
                 <div class="dropdown-menu dropdown-menu-end shadow-sm">
+                  <a class="dropdown-item text-primary fw-medium" href="#" onclick="skipScreenMedia('${s.id}', '${escapeHtml(s.name || s.id)}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polygon points="4 4 14 12 4 20 4 4" fill="currentColor"/><line x1="20" y1="4" x2="20" y2="20" stroke-width="2.5" stroke="currentColor"/></svg>
+                    Skip Media Saat Ini
+                  </a>
+                  <div class="dropdown-divider"></div>
                   <a class="dropdown-item text-primary fw-medium" href="#" onclick="openScreenSettingsModalById('${s.id}')">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 3"></path></svg>
                     Display Settings (Volume, Rotasi)
@@ -322,113 +328,157 @@ function renderScreens() {
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-info" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path d="M3 12h4l3 8l4 -16l3 8h4"></path></svg>
                     Ping & Test Connection
                   </a>
-                <a class="dropdown-item" href="#" onclick="openChangePlaylistModalById('${s.id}')">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-purple" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><circle cx="14" cy="17" r="3"></circle><path d="M17 17v-10h4"></path><path d="M13 5h-10"></path><path d="M9 9h-6"></path><path d="M7 13h-4"></path></svg>
-                  Assign / Change Playlist
-                </a>
-                <a class="dropdown-item" href="#" onclick="openRenameModalById('${s.id}')">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-secondary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -5 -5l-10.5 10.5v4"></path></svg>
-                  Rename Display
-                </a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item text-warning" href="#" onclick="confirmUnpairScreenById('${s.id}')">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-warning" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path d="M17 7l-10 10"></path><path d="M8 7l4 -4a3.5 3.5 0 0 1 5 5l-1.5 1.5"></path><path d="M16 17l-4 4a3.5 3.5 0 0 1 -5 -5l1.5 -1.5"></path></svg>
-                  Unpair Screen (Re-pair)
-                </a>
-                <a class="dropdown-item text-danger" href="#" onclick="confirmDeleteScreenById('${s.id}')">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-danger" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path></svg>
-                  Remove Display
-                </a>
+                  <a class="dropdown-item" href="#" onclick="openChangePlaylistModalById('${s.id}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-purple" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><circle cx="14" cy="17" r="3"></circle><path d="M17 17v-10h4"></path><path d="M13 5h-10"></path><path d="M9 9h-6"></path><path d="M7 13h-4"></path></svg>
+                    Assign / Change Playlist
+                  </a>
+                  <a class="dropdown-item" href="#" onclick="openRenameModalById('${s.id}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-secondary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -5 -5l-10.5 10.5v4"></path></svg>
+                    Rename Display
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item text-warning" href="#" onclick="confirmUnpairScreenById('${s.id}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-warning" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path d="M17 7l-10 10"></path><path d="M8 7l4 -4a3.5 3.5 0 0 1 5 5l-1.5 1.5"></path><path d="M16 17l-4 4a3.5 3.5 0 0 1 -5 -5l1.5 -1.5"></path></svg>
+                    Unpair Screen (Re-pair)
+                  </a>
+                  <a class="dropdown-item text-danger" href="#" onclick="confirmDeleteScreenById('${s.id}')">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-danger" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path></svg>
+                    Remove Display
+                  </a>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- CARD BODY -->
-          <div class="card-body py-3">
-            <!-- Hardware Model & HDMI Badge -->
-            <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
-              <div class="small fw-medium text-secondary text-truncate" style="max-width: 200px;">
-                ${escapeHtml(m.model)}
+          <div class="card-body p-3 d-flex flex-column gap-2">
+            <!-- Hardware & Display Info Strip -->
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-body-tertiary border small">
+              <div class="d-flex align-items-center gap-2 text-truncate me-2" title="${escapeHtml(m.model)}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><rect x="3" y="4" width="18" height="12" rx="1"></rect><line x1="7" y1="20" x2="17" y2="20"></line><line x1="9" y1="16" x2="9" y2="20"></line><line x1="15" y1="16" x2="15" y2="20"></line></svg>
+                <span class="text-secondary text-truncate fw-medium" style="font-size: 0.78rem;">${escapeHtml(m.model)}</span>
               </div>
-              <span class="badge bg-${m.hdmiColor}-lt text-uppercase">HDMI ${m.hdmiStatus}</span>
-            </div>
-
-            <!-- Per-Display Settings Strip -->
-            <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-body-tertiary border mb-3 small">
-              <div class="d-flex align-items-center gap-3">
-                <span title="Volume Audio" class="d-flex align-items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>
-                  <strong class="text-body">${m.settings.volume}%</strong>
-                </span>
-                <span title="Orientasi Layar" class="d-flex align-items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="16" height="16" rx="2" /><line x1="8" y1="4" x2="8" y2="20" /></svg>
-                  <span class="text-body text-uppercase">${escapeHtml(m.settings.rotation)}</span>
-                </span>
-                <span title="Status Layar" class="badge ${m.settings.screen_power === 'on' ? 'bg-success-lt' : 'bg-secondary-lt'} text-uppercase">
-                  ${m.settings.screen_power === 'on' ? 'ACTIVE' : 'STANDBY'}
+              <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                <span class="badge bg-${m.hdmiColor}-lt text-uppercase font-monospace" style="font-size: 0.7rem;">HDMI ${m.hdmiStatus}</span>
+                <span class="badge ${m.settings.screen_power === 'on' ? 'bg-success-lt' : 'bg-secondary-lt'} text-uppercase font-monospace" style="font-size: 0.7rem;">
+                  ${m.settings.screen_power === 'on' ? 'ON' : 'OFF'}
                 </span>
               </div>
-              <button class="btn btn-sm btn-ghost-primary px-2 py-0" title="Ubah Pengaturan Display" onclick="openScreenSettingsModalById('${s.id}')">Edit</button>
             </div>
 
-            <!-- Telemetry Progress Bars -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between small mb-1">
-                <span class="text-secondary">CPU Temp</span>
-                <span class="fw-bold text-${m.tempColor}">${m.temp}</span>
-              </div>
-              <div class="progress progress-sm">
-                <div class="progress-bar bg-${m.tempColor}" style="width: ${Math.min(m.tempVal, 100)}%"></div>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <div class="d-flex justify-content-between small mb-1">
-                <span class="text-secondary">RAM Usage</span>
-                <span class="fw-bold">${m.sys.mem ? `${m.sys.mem.used_mb}MB / ${m.sys.mem.total_mb}MB (${m.memPercent}%)` : '--'}</span>
-              </div>
-              <div class="progress progress-sm">
-                <div class="progress-bar bg-primary" style="width: ${m.memPercent}%"></div>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <div class="d-flex justify-content-between small mb-1">
-                <span class="text-secondary">MicroSD Storage</span>
-                <span class="fw-bold">${m.sys.disk ? `${m.sys.disk.used_gb}GB / ${m.sys.disk.total_gb}GB (${m.diskPercent}%)` : '--'}</span>
-              </div>
-              <div class="progress progress-sm">
-                <div class="progress-bar bg-azure" style="width: ${m.diskPercent}%"></div>
-              </div>
-            </div>
-
-            <!-- Currently Playing -->
-            <div class="p-2 rounded-2 bg-body-tertiary mb-3 border">
-              <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-${m.playingType === 'video' ? 'danger' : 'info'}-lt text-uppercase fs-6">
+            <!-- Now Playing Widget with Remote Skip Action -->
+            <div class="now-playing-card is-${m.playingType === 'video' ? 'video' : (m.playingType === 'image' ? 'image' : 'idle')}">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  ${m.online && m.playingTitle !== 'Standby / Idle Loop' ? `
+                    <span class="equalizer-anim" title="Aktif Diputar">
+                      <span class="equalizer-bar" style="background-color: var(--tblr-${m.playingType === 'video' ? 'danger' : 'primary'});"></span>
+                      <span class="equalizer-bar" style="background-color: var(--tblr-${m.playingType === 'video' ? 'danger' : 'primary'});"></span>
+                      <span class="equalizer-bar" style="background-color: var(--tblr-${m.playingType === 'video' ? 'danger' : 'primary'});"></span>
+                    </span>
+                  ` : `
+                    <span class="status-dot ${m.online ? 'status-blue' : 'status-secondary'}"></span>
+                  `}
+                  <span class="text-uppercase fw-bold text-secondary tracking-wider" style="font-size: 0.7rem; letter-spacing: 0.05em;">Sedang Diputar</span>
+                </div>
+                <span class="badge bg-${m.playingType === 'video' ? 'danger' : (m.playingType === 'image' ? 'info' : 'secondary')}-lt text-uppercase font-monospace" style="font-size: 0.7rem;">
                   ${m.playingType}
                 </span>
-                <div class="small text-truncate flex-grow-1 fw-medium" title="${escapeHtml(m.playingTitle)}">
-                  ${escapeHtml(m.playingTitle)}
-                </div>
               </div>
-              <div class="text-secondary small mt-1 fs-6">Resolution: ${m.resolution} &bull; Seen ${formatRelativeTime(s.last_seen)}</div>
-            </div>
 
-            <!-- Playlist Assignment Dropdown -->
-            <div>
-              <label class="form-label small fw-semibold text-secondary mb-1">Assigned Playlist</label>
-              <div class="input-group">
-                <select class="form-select form-select-sm" id="select-pl-${s.id}">
-                  <option value="">-- No Playlist Assigned --</option>
-                  ${state.playlists.map(p => `
-                    <option value="${p.id}" ${s.playlist_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)} (${p.items ? p.items.length : 0} items)</option>
-                  `).join('')}
-                </select>
-                <button class="btn btn-sm btn-primary" onclick="assignPlaylist('${s.id}', document.getElementById('select-pl-${s.id}').value)">
-                  Save
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <div class="min-w-0 flex-grow-1">
+                  <div class="fw-bold text-truncate text-body mb-1" style="font-size: 0.875rem;" title="${escapeHtml(m.playingTitle)}">
+                    ${escapeHtml(m.playingTitle)}
+                  </div>
+                  <div class="text-secondary small d-flex align-items-center gap-2 font-monospace" style="font-size: 0.72rem;">
+                    <span>${m.resolution}</span>
+                    <span>&bull;</span>
+                    <span>${formatRelativeTime(s.last_seen)}</span>
+                  </div>
+                </div>
+
+                <!-- REMOTE SKIP BUTTON -->
+                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 flex-shrink-0 shadow-none px-2 py-1"
+                  id="btn-skip-${s.id}"
+                  onclick="skipScreenMedia('${s.id}', '${escapeHtml(s.name || s.id)}')"
+                  title="Lewati ke media berikutnya"
+                  ${!m.online ? 'disabled' : ''}>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline m-0" width="15" height="15" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <polygon points="4 4 14 12 4 20 4 4" fill="currentColor"/>
+                    <line x1="20" y1="4" x2="20" y2="20" stroke-width="2.5" stroke="currentColor"/>
+                  </svg>
+                  <span class="fw-medium">Skip</span>
                 </button>
               </div>
+            </div>
+
+            <!-- 3-Column Compact Telemetry Widget -->
+            <div class="row g-2 text-center">
+              <div class="col-4">
+                <div class="mini-telemetry-card h-100 d-flex flex-column justify-content-between">
+                  <div class="mini-telemetry-label">CPU Temp</div>
+                  <div class="mini-telemetry-val text-${m.tempColor}">${m.temp}</div>
+                  <div class="progress progress-xs">
+                    <div class="progress-bar bg-${m.tempColor}" style="width: ${Math.min(m.tempVal, 100)}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="mini-telemetry-card h-100 d-flex flex-column justify-content-between">
+                  <div class="mini-telemetry-label">RAM</div>
+                  <div class="mini-telemetry-val text-primary">${m.memPercent}%</div>
+                  <div class="progress progress-xs">
+                    <div class="progress-bar bg-primary" style="width: ${m.memPercent}%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="mini-telemetry-card h-100 d-flex flex-column justify-content-between">
+                  <div class="mini-telemetry-label">Storage</div>
+                  <div class="mini-telemetry-val text-azure">${m.diskPercent}%</div>
+                  <div class="progress progress-xs">
+                    <div class="progress-bar bg-azure" style="width: ${m.diskPercent}%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Per-Display Audio & Rotation Meta Strip -->
+            <div class="d-flex align-items-center justify-content-between px-2 py-1 rounded bg-body-tertiary border small">
+              <div class="d-flex align-items-center gap-3">
+                <span class="d-flex align-items-center gap-1 text-secondary" title="Volume Audio">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>
+                  <span class="text-body fw-medium">${m.settings.volume}%</span>
+                </span>
+                <span class="d-flex align-items-center gap-1 text-secondary" title="Orientasi Layar">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="16" height="16" rx="2" /><line x1="8" y1="4" x2="8" y2="20" /></svg>
+                  <span class="text-body fw-medium text-uppercase">${escapeHtml(m.settings.rotation)}</span>
+                </span>
+              </div>
+              <button class="btn btn-sm btn-ghost-primary px-2 py-0" title="Ubah Pengaturan Display" onclick="openScreenSettingsModalById('${s.id}')">
+                Ubah
+              </button>
+            </div>
+          </div>
+
+          <!-- FOOTER: ASSIGNED PLAYLIST -->
+          <div class="card-footer bg-transparent border-top p-3 mt-auto">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <label class="form-label small fw-semibold text-secondary mb-0">Assigned Playlist</label>
+              ${m.assignedPlaylist ? `<span class="badge bg-purple-lt small">${m.assignedPlaylist.items ? m.assignedPlaylist.items.length : 0} item</span>` : '<span class="badge bg-secondary-lt small">Kosong</span>'}
+            </div>
+            <div class="input-group input-group-sm">
+              <select class="form-select form-select-sm" id="select-pl-${s.id}">
+                <option value="">-- Tidak Ada Playlist --</option>
+                ${state.playlists.map(p => `
+                  <option value="${p.id}" ${s.playlist_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)} (${p.items ? p.items.length : 0} item)</option>
+                `).join('')}
+              </select>
+              <button class="btn btn-sm btn-primary" onclick="assignPlaylist('${s.id}', document.getElementById('select-pl-${s.id}').value, '${escapeHtml(s.name || s.id)}')">
+                Simpan
+              </button>
             </div>
           </div>
         </div>
@@ -501,7 +551,7 @@ async function submitQuickPair(screenId) {
   });
   if (res && res.success) {
     closeModal();
-    showToast('Screen approved and connected successfully', 'success');
+    showToast('Layar berhasil disetujui dan terhubung', 'success');
     fetchScreens();
   }
 }
@@ -537,12 +587,12 @@ async function submitManualPair() {
   const code = document.getElementById('manual-pair-code')?.value.trim().toUpperCase();
   const name = document.getElementById('manual-pair-name')?.value.trim();
   if (!code || code.length < 4) {
-    showToast('Please enter a valid pairing code', 'warning');
+    showToast('Masukkan kode pairing yang valid', 'warning');
     return;
   }
   const match = state.screens.find(s => s.pairing_code && s.pairing_code.toUpperCase() === code);
   if (!match) {
-    showToast('No screen found matching pairing code: ' + code, 'danger');
+    showToast('Tidak ditemukan layar dengan kode: ' + code, 'danger');
     return;
   }
   const res = await api(`/api/screens/${match.id}/pair`, {
@@ -551,7 +601,7 @@ async function submitManualPair() {
   });
   if (res && res.success) {
     closeModal();
-    showToast('Screen paired and assigned', 'success');
+    showToast('Layar berhasil dipasangkan', 'success');
     fetchScreens();
   }
 }
@@ -587,7 +637,7 @@ async function submitRenameScreen(screenId) {
   if (!name) return;
   await api(`/api/screens/${screenId}`, { method: 'PATCH', body: { name } });
   closeModal();
-  showToast('Display renamed', 'success');
+  showToast('Nama layar berhasil diubah', 'success');
   fetchScreens();
 }
 
@@ -619,19 +669,50 @@ function confirmDeleteScreen(screenId, screenName) {
 async function submitDeleteScreen(screenId) {
   await api(`/api/screens/${screenId}`, { method: 'DELETE' });
   closeModal();
-  showToast('Display terminal removed', 'info');
+  showToast('Layar berhasil dihapus dari sistem', 'info');
   fetchScreens();
 }
 
 // Assign Playlist
-async function assignPlaylist(screenId, playlistId) {
+async function assignPlaylist(screenId, playlistId, screenName = '') {
   const res = await api(`/api/screens/${screenId}`, {
     method: 'PATCH',
     body: { playlist_id: playlistId || null }
   });
   if (res && res.success) {
-    showToast('Assigned playlist updated for screen', 'success');
+    const targetName = screenName ? ` untuk "${screenName}"` : '';
+    showToast(`Playlist berhasil disimpan${targetName}`, 'success');
     fetchScreens();
+  } else {
+    showToast(res ? res.error : 'Gagal menyimpan playlist', 'danger');
+  }
+}
+
+// Skip Screen Current Media
+async function skipScreenMedia(screenId, screenName = '') {
+  const btn = document.getElementById(`btn-skip-${screenId}`);
+  let originalHtml = '';
+  if (btn) {
+    originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Skip...`;
+  }
+
+  try {
+    const res = await api(`/api/screens/${screenId}/skip`, { method: 'POST' });
+    if (res && res.success) {
+      showToast(res.message || `Perintah Skip berhasil dikirim ke ${screenName || 'player'}.`, 'success');
+      setTimeout(fetchScreens, 1500);
+    } else {
+      showToast(res ? res.error : 'Gagal mengirim perintah Skip', 'danger');
+    }
+  } catch (err) {
+    showToast('Koneksi ke server gagal', 'danger');
+  } finally {
+    if (btn) {
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+    }
   }
 }
 
@@ -874,19 +955,19 @@ async function submitChangePlaylist(screenId) {
 async function pingScreenById(screenId) {
   const s = state.screens.find(x => x.id === screenId);
   const name = s ? (s.name || s.id) : screenId;
-  showToast(`Pinging ${name}...`, 'info');
+  showToast(`Menguji koneksi ke "${name}"...`, 'info');
   const res = await api(`/api/screens/${screenId}/ping`, { method: 'POST' });
   if (res && res.success) {
     if (res.is_online) {
       const pingText = res.latency_ms ? ` • Ping ${res.latency_ms}ms` : '';
-      const heartbeatText = res.last_seen_seconds != null ? ` • Seen ${res.last_seen_seconds}s ago` : '';
-      showToast(`Terminal "${name}" (${res.ip}) is ONLINE${pingText}${heartbeatText}`, 'success');
+      const heartbeatText = res.last_seen_seconds != null ? ` • Terlihat ${res.last_seen_seconds}d lalu` : '';
+      showToast(`Layar "${name}" (${res.ip}) ONLINE${pingText}${heartbeatText}`, 'success');
     } else {
-      const lastSeenText = res.last_seen_seconds != null ? ` • Last seen ${Math.round(res.last_seen_seconds)}s ago` : '';
-      showToast(`Terminal "${name}" (${res.ip}) appears OFFLINE${lastSeenText}`, 'warning');
+      const lastSeenText = res.last_seen_seconds != null ? ` • Terakhir terlihat ${Math.round(res.last_seen_seconds)}d lalu` : '';
+      showToast(`Layar "${name}" (${res.ip}) OFFLINE${lastSeenText}`, 'warning');
     }
   } else {
-    showToast(`Failed to ping terminal "${name}"`, 'danger');
+    showToast(`Gagal menguji koneksi ke "${name}"`, 'danger');
   }
 }
 
@@ -1001,7 +1082,7 @@ async function submitUnpairScreen(screenId) {
   const res = await api(`/api/screens/${screenId}/unpair`, { method: 'POST' });
   closeModal();
   if (res && res.success) {
-    showToast(`Terminal disconnected. New pairing code: ${res.pairing_code}`, 'warning');
+    showToast(`Layar diputuskan. Kode pairing baru: ${res.pairing_code}`, 'warning');
     fetchScreens();
   }
 }

@@ -202,7 +202,7 @@ function toggleNewScheduleBox() {
 async function submitCreatePlaylist() {
   const name = document.getElementById('new-playlist-name')?.value.trim();
   if (!name) {
-    showToast('Please enter a playlist name', 'warning');
+    showToast('Masukkan nama playlist terlebih dahulu', 'warning');
     return;
   }
   const scheduleEnabled = document.getElementById('new-pl-schedule-enabled')?.checked || false;
@@ -224,7 +224,7 @@ async function submitCreatePlaylist() {
   });
   if (res && res.success) {
     closeModal();
-    showToast('Playlist created', 'success');
+    showToast('Playlist berhasil dibuat', 'success');
     await fetchPlaylists();
     openEditPlaylistModal(res.id);
   }
@@ -557,7 +557,7 @@ async function submitEditPlaylist() {
   });
   if (res && res.success) {
     closeModal();
-    showToast('Playlist updated successfully', 'success');
+    showToast('Playlist berhasil diperbarui', 'success');
     fetchPlaylists();
   }
 }
@@ -590,6 +590,6 @@ function confirmDeletePlaylist(playlistId, playlistName) {
 async function submitDeletePlaylist(playlistId) {
   await api(`/api/playlists/${playlistId}`, { method: 'DELETE' });
   closeModal();
-  showToast('Playlist deleted', 'info');
+  showToast('Playlist berhasil dihapus', 'info');
   fetchPlaylists();
 }

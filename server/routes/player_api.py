@@ -263,6 +263,31 @@ def player_heartbeat():
         return jsonify(resp)
 
 
+@player_api_bp.route("/api/player/command", methods=["GET"])
+def check_player_command():
+    """Lightweight endpoint for player to check pending commands (skip, restart, reboot) with low latency."""
+    device_id = request.args.get("device_id")
+    if not device_id:
+        return jsonify({"error": "missing device_id"}), 400
+
+    bearer_token = _extract_bearer_token()
+    with get_db() as conn:
+        row = conn.execute("SELECT is_paired, device_token, pending_command FROM screens WHERE id = ?", (device_id,)).fetchone()
+        if not row:
+            return jsonify({"command": None}), 404
+
+        stored_token = row["device_token"] if "device_token" in row.keys() else None
+        if row["is_paired"] and stored_token and bearer_token and bearer_token != stored_token:
+            return jsonify({"error": "unauthorized"}), 401
+
+        cmd = row["pending_command"] if "pending_command" in row.keys() else None
+        if cmd:
+            conn.execute("UPDATE screens SET pending_command = NULL WHERE id = ?", (device_id,))
+            return jsonify({"command": cmd})
+
+    return jsonify({"command": None})
+
+
 # --- OTA UPDATE ENDPOINTS ---
 
 

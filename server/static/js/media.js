@@ -412,7 +412,7 @@ async function uploadFiles(files) {
 
   // Refresh media library
   fetchMedia();
-  showToast(`${uploadDoneCount} file${uploadDoneCount > 1 ? 's' : ''} uploaded`, 'success');
+  showToast(`${uploadDoneCount} file media berhasil diunggah`, 'success');
 
   // Auto-hide upload panel automatically 3.5s after completion
   if (autoCloseUploadTimer) clearTimeout(autoCloseUploadTimer);
@@ -491,7 +491,7 @@ function confirmDeleteMedia(mediaId, filename) {
 async function submitDeleteMedia(mediaId) {
   await api(`/api/media/${mediaId}`, { method: 'DELETE' });
   closeModal();
-  showToast('Media file deleted', 'info');
+  showToast('File media berhasil dihapus', 'info');
   fetchMedia();
 }
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from core.api import api_post, download_media
+from core.api import api_get, api_post, download_media
 from core.cache import compute_sha256, load_cached_playlist, save_cached_playlist
 from core.config import (
     CACHE_FILE,
@@ -17,6 +17,7 @@ from core.config import (
 from core.playback import (
     play_image,
     play_video,
+    request_skip,
     show_pairing_screen,
     show_waiting_screen,
     stop_playback,
@@ -31,6 +32,7 @@ __all__ = [
     "MEDIA_DIR",
     "POLL_INTERVAL",
     "SERVER_URL",
+    "api_get",
     "api_post",
     "compute_sha256",
     "download_media",
@@ -42,6 +44,7 @@ __all__ = [
     "load_server_url",
     "play_image",
     "play_video",
+    "request_skip",
     "save_cached_playlist",
     "show_pairing_screen",
     "show_waiting_screen",

@@ -47,6 +47,29 @@ def api_post(path: str, data: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
 
+def api_get(path: str) -> dict[str, Any] | None:
+    """GET JSON data from the RaspiDeck server and return parsed response."""
+    url = f"{SERVER_URL}{path}"
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return None
+
+    headers = {
+        "User-Agent": f"RaspiDeck-Player/{APP_VERSION}",
+        "Accept": "application/json",
+    }
+    token = load_device_token()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
+            return json.loads(resp.read().decode())
+    except Exception:
+        return None
+
+
 def download_media(
     item: dict[str, Any],
     progress_callback: Any = None,

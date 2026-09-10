@@ -141,25 +141,49 @@ def restart_screen(screen_id: str):
 
 @admin_api_bp.route("/api/screens/<screen_id>/command", methods=["POST"])
 def send_screen_command(screen_id: str):
-    """Queue a control command (restart or reboot) for the client player terminal."""
+    """Queue a control command (restart, reboot, or skip) for the client player terminal."""
     if not require_auth():
         return jsonify({"error": "unauthorized"}), 401
     data = request.get_json(silent=True) or {}
     cmd = data.get("command", "restart").strip().lower()
-    if cmd not in ("restart", "reboot"):
-        return jsonify({"error": "Perintah tidak valid. Gunakan 'restart' atau 'reboot'."}), 400
+    if cmd not in ("restart", "reboot", "skip"):
+        return jsonify({"error": "Perintah tidak valid. Gunakan 'restart', 'reboot', atau 'skip'."}), 400
     with get_db() as conn:
         row = conn.execute("SELECT id, name FROM screens WHERE id = ?", (screen_id,)).fetchone()
         if not row:
-            return jsonify({"error": "screen not found"}), 404
+            return jsonify({"error": "Layar tidak ditemukan"}), 404
         conn.execute(
             "UPDATE screens SET pending_command = ? WHERE id = ?",
             (cmd, screen_id),
         )
-    label = "Restart Aplikasi" if cmd == "restart" else "Reboot Sistem"
+    labels = {
+        "restart": "Restart Aplikasi",
+        "reboot": "Reboot Sistem",
+        "skip": "Skip Media",
+    }
+    label = labels.get(cmd, cmd)
     return jsonify({
         "success": True,
         "message": f"Perintah {label} berhasil dikirim ke {row['name'] or screen_id}."
+    })
+
+
+@admin_api_bp.route("/api/screens/<screen_id>/skip", methods=["POST"])
+def skip_screen_media(screen_id: str):
+    """Queue a skip command to advance currently playing media on a specific screen."""
+    if not require_auth():
+        return jsonify({"error": "unauthorized"}), 401
+    with get_db() as conn:
+        row = conn.execute("SELECT id, name FROM screens WHERE id = ?", (screen_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "Layar tidak ditemukan"}), 404
+        conn.execute(
+            "UPDATE screens SET pending_command = 'skip' WHERE id = ?",
+            (screen_id,),
+        )
+    return jsonify({
+        "success": True,
+        "message": f"Perintah Skip berhasil dikirim ke {row['name'] or screen_id}."
     })
 
 
