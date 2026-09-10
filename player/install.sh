@@ -242,7 +242,7 @@ INITRD_IMG="/boot/initrd.img-$KVER"
 sudo grep -q '^initramfs' "$CONFIG_FILE" || echo "initramfs $(basename "$INITRD_IMG") followkernel" | sudo tee -a "$CONFIG_FILE" >/dev/null
 
 # Force HDMI signal even if TV is turned on after Pi boots, & allocate 128MB GPU for hardware video decoding
-for setting in "hdmi_force_hotplug=1" "hdmi_drive=2" "hdmi_group=1" "hdmi_mode=16" "gpu_mem=128"; do
+for setting in "hdmi_force_hotplug=1" "hdmi_drive=2" "hdmi_group=1" "hdmi_mode=16" "gpu_mem=256"; do
     key=$(echo "$setting" | cut -d= -f1)
     if ! grep -q "^$key=" "$CONFIG_FILE"; then
         echo "$setting" | sudo tee -a "$CONFIG_FILE" >/dev/null
