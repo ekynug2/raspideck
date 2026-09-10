@@ -83,18 +83,31 @@ def get_system_info(current_playing: dict[str, str | None] | None = None) -> dic
     # 6. Display & HDMI Status
     try:
         hdmi_status = "disconnected"
-        hdmi_path = Path("/sys/class/drm/card0-HDMI-A-1/status")
-        if hdmi_path.exists():
-            hdmi_status = hdmi_path.read_text().strip()
         resolution = "unknown"
+        # Check DRM HDMI connections
+        for drm_path in Path("/sys/class/drm").glob("card*-HDMI-A-*"):
+            status_file = drm_path / "status"
+            if status_file.exists() and status_file.read_text().strip() == "connected":
+                hdmi_status = "connected"
+                modes_file = drm_path / "modes"
+                if modes_file.exists():
+                    modes = modes_file.read_text().strip().splitlines()
+                    if modes:
+                        resolution = modes[0].strip()
+                break
+
+        # Check framebuffer virtual size (actual active resolution e.g. 1920x1080, 1280x720)
         fb_path = Path("/sys/class/graphics/fb0/virtual_size")
         if fb_path.exists():
-            resolution = fb_path.read_text().strip().replace(",", "x")
+            fb_res = fb_path.read_text().strip().replace(",", "x")
+            if fb_res and "x" in fb_res:
+                resolution = fb_res
+
         info["display"] = {
             "hdmi": hdmi_status,
             "resolution": resolution,
         }
-    except OSError:
+    except Exception:
         pass
 
     # 7. Local IP Address

@@ -604,8 +604,19 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border: 1px solid var(--tblr-border-color, rgba(98, 105, 118, 0.16)) !important;
   border-radius: 10px;
-  overflow: hidden;
   width: 100%;
+}
+.screen-player-card .card-header {
+  border-top-left-radius: 9px;
+  border-top-right-radius: 9px;
+}
+.screen-player-card .card-footer {
+  border-bottom-left-radius: 9px;
+  border-bottom-right-radius: 9px;
+}
+.screen-player-card .dropdown-menu {
+  z-index: 1060 !important;
+  min-width: 220px;
 }
 .screen-player-card:hover {
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12) !important;

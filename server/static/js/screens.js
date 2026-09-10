@@ -283,7 +283,7 @@ function renderScreens() {
       <div class="col-md-6 col-xl-4">
         <div class="card h-100 shadow-sm screen-player-card">
           <!-- CARD HEADER -->
-          <div class="card-header d-flex align-items-center justify-content-between py-2 px-3 gap-2" style="overflow: hidden;">
+          <div class="card-header d-flex align-items-center justify-content-between py-2 px-3 gap-2">
             <div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1" style="overflow: hidden;">
               <span class="status-dot status-dot-animated flex-shrink-0 ${m.online ? 'status-green status-dot-pulse' : 'status-red status-dot-pulse-red'}" title="${m.online ? 'Online' : 'Offline / Mati'}"></span>
               <div class="min-w-0 flex-grow-1" style="overflow: hidden;">
@@ -293,8 +293,8 @@ function renderScreens() {
             </div>
             <div class="d-flex align-items-center gap-1 flex-shrink-0">
               ${versionBadge}
-              <div class="dropdown">
-                <button class="btn btn-icon btn-ghost-secondary rounded-circle" onclick="toggleScreenDropdown(event)" aria-label="Screen options">
+              <div class="dropdown position-relative">
+                <button class="btn btn-icon btn-ghost-secondary rounded-circle" type="button" onclick="toggleScreenDropdown(event)" aria-label="Screen options">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
                     <circle cx="12" cy="12" r="1"></circle>
                     <circle cx="12" cy="19" r="1"></circle>
@@ -302,11 +302,6 @@ function renderScreens() {
                   </svg>
                 </button>
                 <div class="dropdown-menu dropdown-menu-end shadow-sm">
-                  <a class="dropdown-item text-primary fw-medium" href="#" onclick="skipScreenMedia('${s.id}', '${escapeHtml(s.name || s.id)}')">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><polygon points="4 4 14 12 4 20 4 4" fill="currentColor"/><line x1="20" y1="4" x2="20" y2="20" stroke-width="2.5" stroke="currentColor"/></svg>
-                    Skip Media Saat Ini
-                  </a>
-                  <div class="dropdown-divider"></div>
                   <a class="dropdown-item text-primary fw-medium" href="#" onclick="openScreenSettingsModalById('${s.id}')">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon text-primary" width="18" height="18" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 3"></path></svg>
                     Display Settings (Volume, Rotasi)
@@ -365,9 +360,9 @@ function renderScreens() {
               </div>
             </div>
 
-            <!-- Now Playing Widget with Remote Skip Action -->
+            <!-- Now Playing Widget -->
             <div class="now-playing-card is-${m.playingType === 'video' ? 'video' : (m.playingType === 'image' ? 'image' : 'idle')}">
-              <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="d-flex align-items-center justify-content-between mb-1.5">
                 <div class="d-flex align-items-center gap-2">
                   ${m.online && m.playingTitle !== 'Standby / Idle Loop' ? `
                     <span class="equalizer-anim" title="Aktif Diputar">
@@ -385,31 +380,15 @@ function renderScreens() {
                 </span>
               </div>
 
-              <div class="d-flex align-items-center justify-content-between gap-2">
-                <div class="min-w-0 flex-grow-1">
-                  <div class="fw-bold text-truncate text-body mb-1" style="font-size: 0.875rem;" title="${escapeHtml(m.playingTitle)}">
-                    ${escapeHtml(m.playingTitle)}
-                  </div>
-                  <div class="text-secondary small d-flex align-items-center gap-2 font-monospace" style="font-size: 0.72rem;">
-                    <span>${m.resolution}</span>
-                    <span>&bull;</span>
-                    <span>${formatRelativeTime(s.last_seen)}</span>
-                  </div>
+              <div class="min-w-0">
+                <div class="fw-bold text-truncate text-body mb-1" style="font-size: 0.875rem;" title="${escapeHtml(m.playingTitle)}">
+                  ${escapeHtml(m.playingTitle)}
                 </div>
-
-                <!-- REMOTE SKIP BUTTON -->
-                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 flex-shrink-0 shadow-none px-2 py-1"
-                  id="btn-skip-${s.id}"
-                  onclick="skipScreenMedia('${s.id}', '${escapeHtml(s.name || s.id)}')"
-                  title="Lewati ke media berikutnya"
-                  ${!m.online ? 'disabled' : ''}>
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline m-0" width="15" height="15" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <polygon points="4 4 14 12 4 20 4 4" fill="currentColor"/>
-                    <line x1="20" y1="4" x2="20" y2="20" stroke-width="2.5" stroke="currentColor"/>
-                  </svg>
-                  <span class="fw-medium">Skip</span>
-                </button>
+                <div class="text-secondary small d-flex align-items-center gap-2 font-monospace" style="font-size: 0.72rem;">
+                  <span>${m.resolution}</span>
+                  <span>&bull;</span>
+                  <span>${formatRelativeTime(s.last_seen)}</span>
+                </div>
               </div>
             </div>
 
@@ -443,23 +422,6 @@ function renderScreens() {
                 </div>
               </div>
             </div>
-
-            <!-- Per-Display Audio & Rotation Meta Strip -->
-            <div class="d-flex align-items-center justify-content-between px-2.5 py-1.5 rounded bg-body-tertiary border small">
-              <div class="d-flex align-items-center gap-3">
-                <span class="d-flex align-items-center gap-1.5 text-secondary" title="Volume Audio Hardware">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8a5 5 0 0 1 0 8" /><path d="M6 15h-2a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h2l3.5 -4.5a.8 .8 0 0 1 1.5 .5v16a.8 .8 0 0 1 -1.5 .5l-3.5 -4.5" /></svg>
-                  <span class="badge ${m.settings.volume === 0 ? 'bg-secondary-lt text-secondary' : 'bg-blue-lt text-primary'} font-monospace fw-bold px-1.5 py-0.5" style="font-size: 0.72rem;">${m.settings.volume}%</span>
-                </span>
-                <span class="d-flex align-items-center gap-1.5 text-secondary" title="Orientasi Layar Monitor">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline text-secondary" width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="4" y="4" width="16" height="16" rx="2" /><line x1="8" y1="4" x2="8" y2="20" /></svg>
-                  <span class="badge bg-secondary-lt text-secondary font-monospace fw-bold text-uppercase px-1.5 py-0.5" style="font-size: 0.72rem;">${escapeHtml(m.settings.rotation)}</span>
-                </span>
-              </div>
-              <button class="btn btn-sm btn-ghost-primary px-2 py-0 fw-medium" title="Ubah Pengaturan Display" onclick="openScreenSettingsModalById('${s.id}')">
-                Ubah
-              </button>
-            </div>
           </div>
 
           <!-- FOOTER: ASSIGNED PLAYLIST -->
@@ -491,27 +453,37 @@ function toggleScreenDropdown(event) {
   event.preventDefault();
   event.stopPropagation();
   const btn = event.currentTarget;
-  const menu = btn.nextElementSibling;
+  const container = btn.closest('.dropdown');
+  const menu = container ? container.querySelector('.dropdown-menu') : null;
   if (!menu) return;
+
+  const wasOpen = menu.classList.contains('show');
 
   // Close all other open dropdowns first
   document.querySelectorAll('.dropdown-menu.show').forEach(m => {
-    if (m !== menu) m.classList.remove('show');
+    m.classList.remove('show');
   });
 
-  // Toggle this dropdown
-  menu.classList.toggle('show');
-
-  // Position the dropdown below the button
-  menu.style.position = 'absolute';
-  menu.style.top = '100%';
-  menu.style.right = '0';
-  menu.style.left = 'auto';
+  if (!wasOpen) {
+    menu.classList.add('show');
+    menu.style.position = 'absolute';
+    menu.style.top = '100%';
+    menu.style.right = '0';
+    menu.style.left = 'auto';
+    menu.style.zIndex = '1060';
+  }
 }
 
-// Close dropdowns when clicking outside
+// Close dropdowns when clicking outside or clicking any dropdown item
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('.dropdown')) {
+  if (!e.target.closest('.dropdown') || e.target.closest('.dropdown-item')) {
+    document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+// Close dropdown on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
     document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
   }
 });
