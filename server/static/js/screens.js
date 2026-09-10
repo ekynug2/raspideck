@@ -268,31 +268,30 @@ function renderScreens() {
 
   grid.innerHTML = filtered.map(s => {
     const m = parseScreenMetrics(s);
+    const displayIp = (m.sys && m.sys.local_ip && !m.sys.local_ip.includes(':')) ? m.sys.local_ip : (s.ip_address || '127.0.0.1');
 
-    let versionBadge = `<span class="badge bg-secondary-lt font-monospace" title="Versi Player">v${escapeHtml(m.appVersion)}</span>`;
+    let versionBadge = `<span class="badge bg-secondary-lt font-monospace flex-shrink-0" title="Versi Player">v${escapeHtml(m.appVersion)}</span>`;
     if (m.isUpdating) {
-      versionBadge = `<span class="badge bg-warning-lt text-warning font-monospace cursor-pointer" onclick="openUpdateScreenModalById('${s.id}')" title="Status: ${escapeHtml(m.updateStatus)}"><span class="spinner-border spinner-border-sm me-1"></span> ${escapeHtml(m.updateStatus)}</span>`;
+      versionBadge = `<span class="badge bg-warning-lt text-warning font-monospace cursor-pointer flex-shrink-0" onclick="openUpdateScreenModalById('${s.id}')" title="Status: ${escapeHtml(m.updateStatus)}"><span class="spinner-border spinner-border-sm me-1"></span> ${escapeHtml(m.updateStatus)}</span>`;
     } else if (m.isOutdated) {
-      versionBadge = `<a href="#" class="badge bg-yellow-lt text-warning font-monospace text-decoration-none" title="Pembaruan OTA tersedia" onclick="event.preventDefault(); openUpdateScreenModalById('${s.id}')"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline me-1" width="12" height="12" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/></svg>v${escapeHtml(m.appVersion)} &bull; Update v${escapeHtml(m.targetVersion)}</a>`;
+      versionBadge = `<a href="#" class="badge bg-yellow-lt text-warning font-monospace text-decoration-none d-inline-flex align-items-center gap-1 flex-shrink-0" title="Pembaruan OTA v${escapeHtml(m.targetVersion)} tersedia" onclick="event.preventDefault(); openUpdateScreenModalById('${s.id}')"><svg xmlns="http://www.w3.org/2000/svg" class="icon icon-inline m-0" width="11" height="11" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/></svg>v${escapeHtml(m.appVersion)} <span class="badge bg-warning text-dark px-1 py-0" style="font-size:0.62rem; font-weight:700;">Upd</span></a>`;
     } else {
-      versionBadge = `<span class="badge bg-success-lt font-monospace" title="Versi terbaru">v${escapeHtml(m.appVersion)}</span>`;
+      versionBadge = `<span class="badge bg-success-lt font-monospace flex-shrink-0" title="Versi terbaru">v${escapeHtml(m.appVersion)}</span>`;
     }
 
     return `
       <div class="col-md-6 col-xl-4">
         <div class="card h-100 shadow-sm screen-player-card">
           <!-- CARD HEADER -->
-          <div class="card-header d-flex align-items-center justify-content-between py-2 px-3">
-            <div class="d-flex align-items-center gap-2 min-w-0">
-              <span class="status-dot status-dot-animated ${m.online ? 'status-green status-dot-pulse' : 'status-red status-dot-pulse-red'}" title="${m.online ? 'Online' : 'Offline / Mati'}"></span>
-              <div class="min-w-0">
-                <div class="d-flex align-items-center gap-2">
-                  <h3 class="card-title fw-bold mb-0 text-truncate" style="max-width: 170px;" title="${escapeHtml(s.name || s.id)}">${escapeHtml(s.name || s.id)}</h3>
-                </div>
-                <div class="text-secondary small font-monospace" style="font-size: 0.75rem;">${s.ip_address || '127.0.0.1'}</div>
+          <div class="card-header d-flex align-items-center justify-content-between py-2 px-3 gap-2" style="overflow: hidden;">
+            <div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1" style="overflow: hidden;">
+              <span class="status-dot status-dot-animated flex-shrink-0 ${m.online ? 'status-green status-dot-pulse' : 'status-red status-dot-pulse-red'}" title="${m.online ? 'Online' : 'Offline / Mati'}"></span>
+              <div class="min-w-0 flex-grow-1" style="overflow: hidden;">
+                <h3 class="card-title fw-bold mb-0 text-truncate" style="max-width: 140px;" title="${escapeHtml(s.name || s.id)}">${escapeHtml(s.name || s.id)}</h3>
+                <div class="text-secondary small font-monospace text-truncate" style="max-width: 140px; font-size: 0.72rem;" title="${escapeHtml(displayIp)}">${escapeHtml(displayIp)}</div>
               </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-1 flex-shrink-0">
               ${versionBadge}
               <div class="dropdown">
                 <button class="btn btn-icon btn-ghost-secondary rounded-circle" onclick="toggleScreenDropdown(event)" aria-label="Screen options">

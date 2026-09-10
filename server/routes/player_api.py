@@ -46,9 +46,18 @@ def player_heartbeat():
 
     now_dt = datetime.now(timezone.utc)
     now_iso = now_dt.isoformat()
-    ip_addr = request.headers.get("X-Forwarded-For", request.remote_addr)
     sys_info_obj = data.get("system_info", {})
     sys_info = json.dumps(sys_info_obj)
+
+    # Resolve IP address: prefer client's reported local IPv4 (e.g. 192.168.x.x) over WAN/Docker IPv6
+    client_local_ip = sys_info_obj.get("local_ip")
+    if client_local_ip and ":" not in client_local_ip and client_local_ip != "127.0.0.1":
+        ip_addr = client_local_ip
+    else:
+        req_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+        if req_ip and "," in req_ip:
+            req_ip = req_ip.split(",")[0].strip()
+        ip_addr = req_ip or client_local_ip or "127.0.0.1"
 
     # Client-reported telemetry & app version
     app_version = data.get("app_version") or sys_info_obj.get("app_version", "2.0")
