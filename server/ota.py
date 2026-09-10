@@ -35,18 +35,19 @@ def get_source_version() -> str:
 
 
 def sanity_check_player_code() -> tuple[bool, str]:
-    """Verify that Python files in player directory compile without syntax errors."""
+    """Verify that Python files in player directory compile without syntax errors (in-memory, no disk writes)."""
     if not PLAYER_SRC_DIR.exists():
         return False, f"Player source dir not found: {PLAYER_SRC_DIR}"
 
     py_files = list(PLAYER_SRC_DIR.glob("*.py")) + list((PLAYER_SRC_DIR / "core").glob("*.py"))
     for py_file in py_files:
         try:
-            py_compile.compile(str(py_file), doraise=True)
-        except py_compile.PyCompileError as e:
-            return False, f"Syntax compilation error in {py_file.name}: {e}"
-        except Exception as e:
-            return False, f"Unexpected error checking {py_file.name}: {e}"
+            content = py_file.read_text(encoding="utf-8")
+            compile(content, str(py_file), "exec")
+        except SyntaxError as exc:
+            return False, f"Syntax error in {py_file.name}: {exc}"
+        except Exception as exc:
+            return False, f"Error verifying {py_file.name}: {exc}"
 
     return True, "All player Python modules compiled successfully."
 
