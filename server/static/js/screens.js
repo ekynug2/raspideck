@@ -1085,7 +1085,7 @@ async function triggerScreenSnapshot(screenId) {
 
     showToast('Perintah snapshot dikirim ke Raspberry Pi...', 'info');
 
-    // Poll for new snapshot file (up to 8 attempts, 1s interval)
+    // Poll for new snapshot file (up to 18 attempts, 1s interval)
     let attempts = 0;
     const initialSnap = await api(`/api/screens/${screenId}/snapshot`);
     const initialTime = initialSnap ? initialSnap.captured_at : null;
@@ -1093,9 +1093,10 @@ async function triggerScreenSnapshot(screenId) {
     const pollTimer = setInterval(async () => {
       attempts++;
       const currentSnap = await api(`/api/screens/${screenId}/snapshot`);
-      const isNew = currentSnap && currentSnap.available && currentSnap.captured_at !== initialTime;
+      const hasFile = Boolean(currentSnap && currentSnap.available);
+      const isNew = hasFile && (initialTime == null || currentSnap.captured_at !== initialTime);
 
-      if (isNew || attempts >= 8) {
+      if (isNew || attempts >= 18) {
         clearInterval(pollTimer);
         if (btn) btn.disabled = false;
         if (btnText) btnText.textContent = 'Ambil Snapshot Baru';
@@ -1105,8 +1106,8 @@ async function triggerScreenSnapshot(screenId) {
         }
         if (isNew) {
           showToast('Snapshot monitor berhasil diperbarui!', 'success');
-        } else if (attempts >= 8) {
-          showToast('Waktu permintaan habis, silakan coba lagi sesaat lagi.', 'warning');
+        } else if (attempts >= 18) {
+          showToast('Waktu permintaan habis. Silakan coba lagi atau pastikan software player telah diperbarui.', 'warning');
         }
       }
     }, 1000);

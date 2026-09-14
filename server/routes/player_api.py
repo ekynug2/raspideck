@@ -464,8 +464,12 @@ def upload_snapshot():
 
                 if "," in b64_img:
                     b64_img = b64_img.split(",", 1)[1]
-                target_path.write_bytes(base64.b64decode(b64_img))
+                raw_bytes = base64.b64decode(b64_img)
+                target_path.write_bytes(raw_bytes)
                 image_saved = True
+
+        logger.info(f"[SNAPSHOT] Screen {device_id} uploaded snapshot (saved={image_saved})")
+        print(f"[SNAPSHOT] Screen {device_id} uploaded snapshot (saved={image_saved})", flush=True)
 
         if image_saved:
             conn.execute(

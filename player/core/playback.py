@@ -354,14 +354,42 @@ def capture_display_snapshot(target_path: Path) -> bool:
         except OSError:
             pass
 
-    # Method 1: If VLC is currently playing video, use native LibVLC snapshot
+    def _normalize_image(src: Path) -> bool:
+        try:
+            if src.exists() and src.stat().st_size > 512:
+                from PIL import Image
+
+                with Image.open(src) as im:
+                    rgb = im.convert("RGB")
+                    if rgb.width > 1280 or rgb.height > 720:
+                        rgb.thumbnail((1280, 720), getattr(Image.Resampling, "LANCZOS", Image.LANCZOS))
+                    rgb.save(str(target_path), "JPEG", quality=80)
+                if src != target_path:
+                    src.unlink(missing_ok=True)
+                return bool(target_path.exists() and target_path.stat().st_size > 512)
+        except Exception as err:
+            print(f"[playback] Image normalization error: {err}", flush=True)
+        return False
+
+    # Method 1: If VLC is currently playing, use native LibVLC snapshot (0, 0 = original resolution)
     if _VLC_AVAILABLE and VLC_PLAYER is not None:
         try:
             state = VLC_PLAYER.get_state()
             if state in (_STATE_PLAYING, getattr(vlc.State, "Paused", 4)):
-                VLC_PLAYER.video_take_snapshot(0, str(target_path), 1280, 720)
+                temp_png = target_path.with_suffix(".png")
+                temp_png.unlink(missing_ok=True)
+                # Try PNG first as LibVLC always bundles PNG encoder
+                VLC_PLAYER.video_take_snapshot(0, str(temp_png), 0, 0)
+                for _ in range(20):
+                    if temp_png.exists() and temp_png.stat().st_size > 512:
+                        if _normalize_image(temp_png):
+                            return True
+                    time.sleep(0.1)
+
+                # Fallback: direct to target_path
+                VLC_PLAYER.video_take_snapshot(0, str(target_path), 0, 0)
                 for _ in range(15):
-                    if target_path.exists() and target_path.stat().st_size > 1024:
+                    if target_path.exists() and target_path.stat().st_size > 512:
                         return True
                     time.sleep(0.1)
         except Exception as e:
@@ -371,13 +399,14 @@ def capture_display_snapshot(target_path: Path) -> bool:
     env = {**os.environ, "DISPLAY": ":0"}
     if shutil.which("scrot"):
         try:
+            tmp_scrot = target_path.with_suffix(".scrot.jpg")
             subprocess.run(
-                ["scrot", "-z", "-q", "80", str(target_path)],
+                ["scrot", "-z", "-q", "80", str(tmp_scrot)],
                 env=env,
                 capture_output=True,
                 timeout=3,
             )
-            if target_path.exists() and target_path.stat().st_size > 1024:
+            if _normalize_image(tmp_scrot):
                 return True
         except Exception:
             pass
@@ -392,30 +421,22 @@ def capture_display_snapshot(target_path: Path) -> bool:
                 capture_output=True,
                 timeout=3,
             )
-            if xwd_out.exists() and xwd_out.stat().st_size > 0:
-                try:
-                    from PIL import Image
-
-                    with Image.open(xwd_out) as im:
-                        im.convert("RGB").save(str(target_path), "JPEG", quality=80)
-                    xwd_out.unlink(missing_ok=True)
-                    if target_path.exists() and target_path.stat().st_size > 1024:
-                        return True
-                except Exception:
-                    pass
+            if _normalize_image(xwd_out):
+                return True
         except Exception:
             pass
 
     # Method 4: ffmpeg x11grab (single frame)
     if shutil.which("ffmpeg"):
         try:
+            tmp_ff = target_path.with_suffix(".ff.jpg")
             subprocess.run(
-                ["ffmpeg", "-y", "-f", "x11grab", "-video_size", "1280x720", "-i", ":0.0", "-vframes", "1", "-q:v", "3", str(target_path)],
+                ["ffmpeg", "-y", "-f", "x11grab", "-video_size", "1280x720", "-i", ":0.0", "-vframes", "1", "-q:v", "3", str(tmp_ff)],
                 env=env,
                 capture_output=True,
                 timeout=4,
             )
-            if target_path.exists() and target_path.stat().st_size > 1024:
+            if _normalize_image(tmp_ff):
                 return True
         except Exception:
             pass
@@ -426,11 +447,15 @@ def capture_display_snapshot(target_path: Path) -> bool:
 
         img = ImageGrab.grab()
         if img:
-            img.convert("RGB").save(str(target_path), "JPEG", quality=80)
-            if target_path.exists() and target_path.stat().st_size > 1024:
+            rgb = img.convert("RGB")
+            if rgb.width > 1280 or rgb.height > 720:
+                rgb.thumbnail((1280, 720), getattr(Image.Resampling, "LANCZOS", Image.LANCZOS))
+            rgb.save(str(target_path), "JPEG", quality=80)
+            if target_path.exists() and target_path.stat().st_size > 512:
                 return True
     except Exception:
         pass
 
     return False
+
 

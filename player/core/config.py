@@ -44,6 +44,11 @@ def load_server_url() -> str:
     return "http://localhost:8000"
 
 
+def get_server_url() -> str:
+    """Return resolved server URL."""
+    return load_server_url()
+
+
 _CACHED_DEVICE_ID: str = os.environ.get("RASPIDECK_DEVICE_ID", "")
 
 
