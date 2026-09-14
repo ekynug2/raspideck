@@ -223,7 +223,7 @@ Setiap layar yang terhubung dapat dikontrol secara spesifik melalui Web Dashboar
 journalctl -u raspideck.service -f
 ```
 
-#### Q: Apa yang terjadi jika Wi-Fi atau internet outlet mati?
+#### Q: Apa yang terjadi jika Wi-Fi atau internet mati?
 Player otomatis beralih ke mode offline dan terus memutar playlist dari cache lokal tanpa henti. Saat jaringan kembali online, player akan otomatis tersambung kembali ke server.
 
 #### Q: Mengapa rotasi layar tidak berubah?
