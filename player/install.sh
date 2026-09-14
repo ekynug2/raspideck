@@ -41,6 +41,7 @@ sudo apt-get install -y --no-install-recommends \
     plymouth \
     plymouth-themes \
     psmisc \
+    scrot \
     curl \
     sed
 

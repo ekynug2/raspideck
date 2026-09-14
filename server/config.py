@@ -103,3 +103,6 @@ UPDATES_DIR = Path(os.environ.get("UPDATES_DIR", BASE_DIR / "updates"))
 UPDATES_DIR.mkdir(parents=True, exist_ok=True)
 _default_player_dir = Path("/player") if Path("/player").exists() else BASE_DIR.parent / "player"
 PLAYER_SRC_DIR = Path(os.environ.get("PLAYER_SRC_DIR", _default_player_dir))
+
+SNAPSHOTS_DIR = Path(os.environ.get("SNAPSHOTS_DIR", (DB_PATH.parent if DB_PATH.parent.exists() else BASE_DIR) / "snapshots"))
+SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)

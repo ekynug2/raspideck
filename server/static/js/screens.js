@@ -854,6 +854,36 @@ function openScreenDetailsModalById(screenId) {
         </div>
       </div>
 
+      <!-- Visual Monitor Snapshot & Playback Health -->
+      <div class="card border mt-3">
+        <div class="card-header py-2 bg-body-tertiary d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon text-primary" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M4 8v-2a2 2 0 0 1 2 -2h2" />
+              <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+              <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+              <path d="M16 20h2a2 2 0 0 0 2 -2v-2" />
+              <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+            </svg>
+            <div class="card-title fs-5 fw-bold mb-0">Visual Screen Snapshot &amp; Playback Quality</div>
+          </div>
+          <button class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1" id="btn-snap-${s.id}" onclick="triggerScreenSnapshot('${s.id}')">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M5.7 6.2a10 10 0 0 0 -.7 1.8h-2a1 1 0 0 0 -1 1v10a1 1 0 0 0 1 1h18a1 1 0 0 0 1 -1v-10a1 1 0 0 0 -1 -1h-2a10 10 0 0 0 -.7 -1.8l-1.3 -2.2a1 1 0 0 0 -.8 -.5h-6.4a1 1 0 0 0 -.8 .5l-1.3 2.2z" />
+            </svg>
+            <span id="btn-snap-text-${s.id}">Ambil Snapshot Baru</span>
+          </button>
+        </div>
+        <div class="card-body p-3" id="snapshot-container-${s.id}">
+          <div class="text-center py-3 text-secondary">
+            <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+            <div class="small">Memeriksa snapshot &amp; status pemutaran video...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Hardware Settings & Software Version -->
       <div class="card border mt-3">
         <div class="card-header py-2 bg-body-tertiary d-flex justify-content-between align-items-center">
@@ -901,6 +931,195 @@ function openScreenDetailsModalById(screenId) {
       <button type="button" class="btn btn-secondary" onclick="closeModal()">Close</button>
     </div>
   `, 'modal-lg');
+
+  loadScreenSnapshot(screenId);
+}
+
+// --- SCREEN SNAPSHOT & PLAYBACK HEALTH INSPECTION ---
+
+function formatMsTime(ms) {
+  if (!ms || ms < 0) return '00:00';
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+async function loadScreenSnapshot(screenId) {
+  const container = document.getElementById(`snapshot-container-${screenId}`);
+  if (!container) return;
+
+  try {
+    const data = await api(`/api/screens/${screenId}/snapshot`);
+    if (!data) {
+      container.innerHTML = `<div class="text-secondary small text-center py-2">Gagal memuat status snapshot layar.</div>`;
+      return;
+    }
+    renderSnapshotContent(screenId, data);
+  } catch (e) {
+    if (container) {
+      container.innerHTML = `<div class="text-secondary small text-center py-2">Tidak dapat mengambil data snapshot saat ini.</div>`;
+    }
+  }
+}
+
+function renderSnapshotContent(screenId, data) {
+  const container = document.getElementById(`snapshot-container-${screenId}`);
+  if (!container) return;
+
+  const h = data.health || {};
+  const hasImage = data.available && data.snapshot_url;
+  const capturedAt = data.captured_at ? `${formatRelativeTime(data.captured_at)} (${format24Time(data.captured_at)})` : 'Belum pernah diambil';
+
+  // Badge Status & Color
+  let statusBadge = '<span class="badge bg-secondary-lt fs-6 fw-bold px-2 py-1">STANDBY / IDLE</span>';
+  let alertClass = 'alert-secondary';
+
+  if (h.status === 'frozen') {
+    statusBadge = '<span class="badge bg-danger text-white fs-6 fw-bold px-2.5 py-1 d-inline-flex align-items-center gap-1"><span class="status-dot status-dot-animated status-red status-dot-pulse-red"></span> VIDEO MACET (FREEZE)</span>';
+    alertClass = 'alert-danger text-danger';
+  } else if (h.status === 'stuttering') {
+    statusBadge = '<span class="badge bg-warning text-dark fs-6 fw-bold px-2.5 py-1 d-inline-flex align-items-center gap-1"><span class="status-dot status-dot-animated status-warning"></span> SHUTTERING / PATAH-PATAH</span>';
+    alertClass = 'alert-warning text-dark';
+  } else if (h.status === 'smooth' || h.is_playing) {
+    statusBadge = '<span class="badge bg-success text-white fs-6 fw-bold px-2.5 py-1 d-inline-flex align-items-center gap-1"><span class="status-dot status-dot-animated status-green status-dot-pulse"></span> PEMUTARAN LANCAR (SMOOTH)</span>';
+    alertClass = 'alert-success text-success';
+  }
+
+  const fpsText = (h.fps != null && h.fps > 0) ? `${h.fps} FPS` : (h.is_playing ? '30 FPS' : '--');
+  const dropText = h.lost_frames != null ? `${h.lost_frames} frame (${h.drop_rate_pct || 0}%)` : '0 frame (0%)';
+  const displayedText = h.displayed_frames != null && h.displayed_frames > 0 ? `${h.displayed_frames.toLocaleString()} frame` : '--';
+  const durationText = (h.time_ms != null && h.length_ms != null && h.length_ms > 0) ? `${formatMsTime(h.time_ms)} / ${formatMsTime(h.length_ms)}` : '--:--';
+
+  const imageHtml = hasImage ? `
+    <div class="position-relative rounded overflow-hidden border shadow-sm" style="background:#000; min-height: 195px;">
+      <img src="${data.snapshot_url}?t=${Date.now()}" 
+           class="w-100 h-100 d-block cursor-pointer" 
+           style="max-height: 225px; object-fit: contain;" 
+           alt="Monitor Screen Snapshot"
+           title="Klik untuk melihat layar penuh"
+           onclick="openSnapshotFullModal('${data.snapshot_url}?t=${Date.now()}')">
+      <div class="position-absolute bottom-0 start-0 m-2 badge bg-dark bg-opacity-75 text-white font-monospace" style="font-size:0.7rem;">
+        Diambil: ${capturedAt}
+      </div>
+      <div class="position-absolute top-0 end-0 m-2">
+        <button class="btn btn-sm btn-icon btn-dark bg-opacity-75 text-white rounded-circle" onclick="openSnapshotFullModal('${data.snapshot_url}?t=${Date.now()}')" title="Perbesar Layar">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><circle cx="10" cy="10" r="7"></circle><line x1="21" y1="21" x2="15" y2="15"></line><line x1="10" y1="7" x2="10" y2="13"></line><line x1="7" y1="10" x2="13" y2="10"></line></svg>
+        </button>
+      </div>
+    </div>
+  ` : `
+    <div class="rounded border border-dashed d-flex flex-column align-items-center justify-content-center p-4 text-center text-secondary h-100" style="min-height: 195px; background: rgba(0,0,0,0.02);">
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary mb-2" width="36" height="36" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"><rect x="3" y="4" width="18" height="12" rx="1"></rect><line x1="7" y1="20" x2="17" y2="20"></line><line x1="9" y1="16" x2="9" y2="20"></line><line x1="15" y1="16" x2="15" y2="20"></line><circle cx="12" cy="10" r="2"></circle></svg>
+      <div class="fw-medium small mb-1">Belum Ada Snapshot Monitor</div>
+      <div class="text-secondary" style="font-size: 0.75rem;">Klik tombol "Ambil Snapshot Baru" di atas untuk menangkap visual display saat ini.</div>
+    </div>
+  `;
+
+  container.innerHTML = `
+    <div class="row g-3 align-items-stretch">
+      <div class="col-md-6">
+        ${imageHtml}
+      </div>
+      <div class="col-md-6 d-flex flex-column justify-content-between">
+        <div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-secondary small fw-bold text-uppercase">Status Kualitas Layar</span>
+            ${statusBadge}
+          </div>
+          <div class="alert ${alertClass} p-2 mb-3 small fw-medium rounded border-0">
+            ${escapeHtml(h.message || 'Status video normal dan tidak terdeteksi kendala.')}
+          </div>
+          
+          <div class="row g-2 small">
+            <div class="col-6">
+              <div class="p-2 rounded bg-body-tertiary border">
+                <div class="text-secondary" style="font-size:0.72rem;">VIDEO FPS</div>
+                <div class="fw-bold font-monospace fs-5 text-body">${fpsText}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-2 rounded bg-body-tertiary border">
+                <div class="text-secondary" style="font-size:0.72rem;">FRAME DROP / HILANG</div>
+                <div class="fw-bold font-monospace fs-5 ${h.stutter_detected ? 'text-warning' : 'text-body'}">${dropText}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-2 rounded bg-body-tertiary border">
+                <div class="text-secondary" style="font-size:0.72rem;">FRAME TERTAYANG</div>
+                <div class="fw-bold font-monospace fs-5 text-body">${displayedText}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-2 rounded bg-body-tertiary border">
+                <div class="text-secondary" style="font-size:0.72rem;">POSISI VIDEO</div>
+                <div class="fw-bold font-monospace fs-5 text-body">${durationText}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top text-secondary small font-monospace" style="font-size: 0.72rem;">
+          <span>Metode: ${escapeHtml(h.capture_method || 'direct')}</span>
+          <span>Update: ${capturedAt}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function triggerScreenSnapshot(screenId) {
+  const btn = document.getElementById(`btn-snap-${screenId}`);
+  const btnText = document.getElementById(`btn-snap-text-${screenId}`);
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Mengambil...`;
+
+  try {
+    const res = await api(`/api/screens/${screenId}/snapshot`, { method: 'POST' });
+    if (res && res.error) {
+      showToast(res.error, 'danger');
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.textContent = 'Ambil Snapshot Baru';
+      return;
+    }
+
+    showToast('Perintah snapshot dikirim ke Raspberry Pi...', 'info');
+
+    // Poll for new snapshot file (up to 8 attempts, 1s interval)
+    let attempts = 0;
+    const initialSnap = await api(`/api/screens/${screenId}/snapshot`);
+    const initialTime = initialSnap ? initialSnap.captured_at : null;
+
+    const pollTimer = setInterval(async () => {
+      attempts++;
+      const currentSnap = await api(`/api/screens/${screenId}/snapshot`);
+      const isNew = currentSnap && currentSnap.available && currentSnap.captured_at !== initialTime;
+
+      if (isNew || attempts >= 8) {
+        clearInterval(pollTimer);
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = 'Ambil Snapshot Baru';
+
+        if (currentSnap) {
+          renderSnapshotContent(screenId, currentSnap);
+        }
+        if (isNew) {
+          showToast('Snapshot monitor berhasil diperbarui!', 'success');
+        } else if (attempts >= 8) {
+          showToast('Waktu permintaan habis, silakan coba lagi sesaat lagi.', 'warning');
+        }
+      }
+    }, 1000);
+  } catch (err) {
+    console.error('Trigger snapshot error:', err);
+    showToast('Gagal memicu snapshot layar', 'danger');
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = 'Ambil Snapshot Baru';
+  }
+}
+
+function openSnapshotFullModal(imageUrl) {
+  window.open(imageUrl, '_blank');
 }
 
 // Modal: Change Playlist Assignment

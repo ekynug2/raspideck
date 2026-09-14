@@ -60,6 +60,8 @@ def init_db() -> None:
                 device_token TEXT DEFAULT NULL,
                 update_lock_acquired_at TEXT DEFAULT NULL,
                 last_update_log TEXT DEFAULT '[]',
+                last_snapshot_at TEXT DEFAULT NULL,
+                playback_health TEXT DEFAULT '{}',
                 FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE SET NULL
             );
         """)
@@ -89,6 +91,10 @@ def init_db() -> None:
             _add_col("screens", "update_lock_acquired_at", "TEXT DEFAULT NULL")
         if "last_update_log" not in cols:
             _add_col("screens", "last_update_log", "TEXT DEFAULT '[]'")
+        if "last_snapshot_at" not in cols:
+            _add_col("screens", "last_snapshot_at", "TEXT DEFAULT NULL")
+        if "playback_health" not in cols:
+            _add_col("screens", "playback_health", "TEXT DEFAULT '{}'")
 
         # Migration: ensure schedule columns exist in existing playlists tables
         pl_cols = {col[1] for col in conn.execute("PRAGMA table_info(playlists)").fetchall()}

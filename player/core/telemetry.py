@@ -161,4 +161,12 @@ def get_system_info(current_playing: dict[str, str | None] | None = None) -> dic
         info["title"] = current_playing.get("title") or current_playing["filename"]
         info["media_type"] = current_playing.get("media_type")
 
+    # 9. Real-time Playback Health (VLC stats, freeze, shuttering)
+    try:
+        from core.playback import get_playback_health
+
+        info["playback_health"] = get_playback_health()
+    except Exception:
+        pass
+
     return info

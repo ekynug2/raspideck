@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
+from typing import Any
 
 from core.config import POLL_INTERVAL
 from core.screens import generate_pairing_image, generate_waiting_image
@@ -209,3 +210,227 @@ def stop_playback() -> None:
             VLC_PLAYER.stop()
         except (OSError, AttributeError) as e:
             print(f"[player] Warning during VLC stop: {e}", flush=True)
+
+
+def format_ms_time(ms: int) -> str:
+    """Format milliseconds into MM:SS format."""
+    if not ms or ms < 0:
+        return "00:00"
+    total_sec = int(ms / 1000)
+    mins = total_sec // 60
+    secs = total_sec % 60
+    return f"{mins:02d}:{secs:02d}"
+
+
+def get_playback_health() -> dict[str, Any]:
+    """Inspect realtime video playback quality, freeze status, and shuttering/dropped frames."""
+    if not _VLC_AVAILABLE or VLC_PLAYER is None:
+        return {
+            "status": "standby",
+            "message": "Player engine offline / belum aktif",
+            "is_playing": False,
+            "media_type": "none",
+            "fps": 0.0,
+            "freeze_detected": False,
+            "stutter_detected": False,
+            "displayed_frames": 0,
+            "lost_frames": 0,
+            "drop_rate_pct": 0.0,
+        }
+
+    try:
+        raw_state = VLC_PLAYER.get_state()
+        is_playing = bool(raw_state == _STATE_PLAYING)
+        time_ms = int(VLC_PLAYER.get_time() or 0)
+        length_ms = int(VLC_PLAYER.get_length() or 0)
+        fps = round(float(VLC_PLAYER.get_fps() or 0.0), 1)
+
+        displayed = 0
+        lost = 0
+        decoded = 0
+        media = VLC_PLAYER.get_media()
+        if media:
+            try:
+                stats = vlc.MediaStats()
+                if media.get_stats(stats):
+                    displayed = int(stats.displayed_pictures or 0)
+                    lost = int(stats.lost_pictures or 0)
+                    decoded = int(stats.decoded_video or 0)
+            except Exception:
+                pass
+
+        if not is_playing:
+            return {
+                "status": "standby",
+                "message": "Player dalam keadaan idle / tidak sedang memutar video",
+                "is_playing": False,
+                "media_type": "none",
+                "time_ms": time_ms,
+                "length_ms": length_ms,
+                "fps": fps,
+                "freeze_detected": False,
+                "stutter_detected": False,
+                "displayed_frames": displayed,
+                "lost_frames": lost,
+                "drop_rate_pct": 0.0,
+            }
+
+        # 1. Freeze Detection: Check whether playback timestamp advances over 350ms
+        freeze_detected = False
+        t_start = time_ms
+        disp_start = displayed
+        time.sleep(0.35)
+        t_now = int(VLC_PLAYER.get_time() or 0)
+
+        disp_now = displayed
+        if media:
+            try:
+                stats = vlc.MediaStats()
+                if media.get_stats(stats):
+                    disp_now = int(stats.displayed_pictures or 0)
+                    lost = int(stats.lost_pictures or 0)
+            except Exception:
+                pass
+
+        if length_ms > 2000 and t_now == t_start and (disp_now == disp_start):
+            time.sleep(0.3)
+            t_confirm = int(VLC_PLAYER.get_time() or 0)
+            if t_confirm == t_start and VLC_PLAYER.get_state() == _STATE_PLAYING:
+                freeze_detected = True
+
+        # 2. Shuttering / Dropped Frames Detection
+        total_frames = disp_now + lost
+        drop_rate = round((lost / total_frames * 100.0), 2) if total_frames > 0 else 0.0
+        stutter_detected = bool(lost > 3 and drop_rate > 1.5)
+
+        # 3. Status & Diagnostic Message
+        if freeze_detected:
+            status = "frozen"
+            msg = f"PERINGATAN: Video macet (freeze). Frame terhenti pada posisi {format_ms_time(t_now)}."
+        elif stutter_detected:
+            status = "stuttering"
+            msg = f"PERINGATAN: Video shuttering / patah-patah ({lost} frame drop, {drop_rate}% frame hilang)."
+        else:
+            status = "smooth"
+            msg = f"Pemutaran lancar tanpa lag ({disp_now} frame tertayang, {drop_rate}% drop)."
+
+        return {
+            "status": status,
+            "message": msg,
+            "is_playing": True,
+            "media_type": "video",
+            "time_ms": t_now,
+            "length_ms": length_ms,
+            "position": round(float(VLC_PLAYER.get_position() or 0.0), 3),
+            "fps": fps,
+            "freeze_detected": freeze_detected,
+            "stutter_detected": stutter_detected,
+            "displayed_frames": disp_now,
+            "lost_frames": lost,
+            "decoded_frames": decoded,
+            "drop_rate_pct": drop_rate,
+        }
+    except Exception as e:
+        return {
+            "status": "unknown",
+            "message": f"Evaluasi playback error: {e}",
+            "is_playing": False,
+            "freeze_detected": False,
+            "stutter_detected": False,
+        }
+
+
+def capture_display_snapshot(target_path: Path) -> bool:
+    """Capture current monitor display image (VLC video frame or X11 screen)."""
+    import os
+    import shutil
+    import subprocess
+
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    if target_path.exists():
+        try:
+            target_path.unlink()
+        except OSError:
+            pass
+
+    # Method 1: If VLC is currently playing video, use native LibVLC snapshot
+    if _VLC_AVAILABLE and VLC_PLAYER is not None:
+        try:
+            state = VLC_PLAYER.get_state()
+            if state in (_STATE_PLAYING, getattr(vlc.State, "Paused", 4)):
+                VLC_PLAYER.video_take_snapshot(0, str(target_path), 1280, 720)
+                for _ in range(15):
+                    if target_path.exists() and target_path.stat().st_size > 1024:
+                        return True
+                    time.sleep(0.1)
+        except Exception as e:
+            print(f"[playback] VLC video snapshot error: {e}", flush=True)
+
+    # Method 2: X11 screen capture via scrot
+    env = {**os.environ, "DISPLAY": ":0"}
+    if shutil.which("scrot"):
+        try:
+            subprocess.run(
+                ["scrot", "-z", "-q", "80", str(target_path)],
+                env=env,
+                capture_output=True,
+                timeout=3,
+            )
+            if target_path.exists() and target_path.stat().st_size > 1024:
+                return True
+        except Exception:
+            pass
+
+    # Method 3: xwd + convert or PIL
+    if shutil.which("xwd"):
+        try:
+            xwd_out = target_path.with_suffix(".xwd")
+            subprocess.run(
+                ["xwd", "-root", "-silent", "-out", str(xwd_out)],
+                env=env,
+                capture_output=True,
+                timeout=3,
+            )
+            if xwd_out.exists() and xwd_out.stat().st_size > 0:
+                try:
+                    from PIL import Image
+
+                    with Image.open(xwd_out) as im:
+                        im.convert("RGB").save(str(target_path), "JPEG", quality=80)
+                    xwd_out.unlink(missing_ok=True)
+                    if target_path.exists() and target_path.stat().st_size > 1024:
+                        return True
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # Method 4: ffmpeg x11grab (single frame)
+    if shutil.which("ffmpeg"):
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-f", "x11grab", "-video_size", "1280x720", "-i", ":0.0", "-vframes", "1", "-q:v", "3", str(target_path)],
+                env=env,
+                capture_output=True,
+                timeout=4,
+            )
+            if target_path.exists() and target_path.stat().st_size > 1024:
+                return True
+        except Exception:
+            pass
+
+    # Method 5: PIL ImageGrab
+    try:
+        from PIL import ImageGrab
+
+        img = ImageGrab.grab()
+        if img:
+            img.convert("RGB").save(str(target_path), "JPEG", quality=80)
+            if target_path.exists() and target_path.stat().st_size > 1024:
+                return True
+    except Exception:
+        pass
+
+    return False
+

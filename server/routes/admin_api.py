@@ -8,9 +8,9 @@ import uuid
 from datetime import datetime, timezone
 
 from auth import require_auth
-from config import MEDIA_DIR
+from config import MEDIA_DIR, SNAPSHOTS_DIR
 from db import get_db
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_from_directory
 from ota import build_player_package, get_latest_manifest
 from utils import allowed_file, delete_thumbnail, generate_video_thumbnail, get_thumbnail_path, is_video
 from werkzeug.utils import secure_filename
@@ -118,6 +118,87 @@ def ping_screen(screen_id: str):
                 "latency_ms": latency_ms,
             }
         )
+
+
+# --- SCREEN SNAPSHOT & HEALTH INSPECTION ---
+
+
+@admin_api_bp.route("/api/screens/<screen_id>/snapshot", methods=["POST"])
+def trigger_screen_snapshot(screen_id: str):
+    """Queue snapshot capture command for the screen terminal."""
+    if not require_auth():
+        return jsonify({"error": "unauthorized"}), 401
+    with get_db() as conn:
+        row = conn.execute("SELECT id, name, last_seen FROM screens WHERE id = ?", (screen_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "screen not found"}), 404
+
+        last_seen = row["last_seen"]
+        is_online = False
+        if last_seen:
+            try:
+                dt = datetime.fromisoformat(last_seen.replace("Z", "+00:00"))
+                diff = (datetime.now(timezone.utc) - dt).total_seconds()
+                is_online = diff < 45
+            except Exception:
+                pass
+
+        if not is_online:
+            return jsonify({"error": "Layar sedang offline. Snapshot hanya dapat diambil saat status player online.", "online": False}), 400
+
+        conn.execute(
+            "UPDATE screens SET pending_command = 'snapshot' WHERE id = ?",
+            (screen_id,),
+        )
+    return jsonify({"success": True, "message": "Perintah snapshot dikirim ke layar. Menunggu capture...", "online": True})
+
+
+@admin_api_bp.route("/api/screens/<screen_id>/snapshot", methods=["GET"])
+def get_screen_snapshot_status(screen_id: str):
+    """Retrieve snapshot availability, capture timestamp, and playback health diagnostics."""
+    if not require_auth():
+        return jsonify({"error": "unauthorized"}), 401
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id, name, last_seen, last_snapshot_at, playback_health FROM screens WHERE id = ?",
+            (screen_id,),
+        ).fetchone()
+        if not row:
+            return jsonify({"error": "screen not found"}), 404
+
+        target_path = SNAPSHOTS_DIR / f"{screen_id}.jpg"
+        has_file = target_path.exists() and target_path.stat().st_size > 0
+
+        health = {}
+        try:
+            raw_h = row["playback_health"] or "{}"
+            health = json.loads(raw_h) if isinstance(raw_h, str) else raw_h
+        except Exception:
+            pass
+
+        return jsonify({
+            "available": has_file,
+            "captured_at": row["last_snapshot_at"],
+            "health": health,
+            "file_size": target_path.stat().st_size if has_file else 0,
+            "snapshot_url": f"/api/screens/{screen_id}/snapshot.jpg" if has_file else None,
+        })
+
+
+@admin_api_bp.route("/api/screens/<screen_id>/snapshot.jpg", methods=["GET"])
+def serve_screen_snapshot_image(screen_id: str):
+    """Serve the latest captured screen snapshot JPEG image."""
+    if not require_auth():
+        return jsonify({"error": "unauthorized"}), 401
+    target_path = SNAPSHOTS_DIR / f"{screen_id}.jpg"
+    if not target_path.exists() or target_path.stat().st_size == 0:
+        return jsonify({"error": "snapshot not available"}), 404
+
+    response = send_from_directory(SNAPSHOTS_DIR, f"{screen_id}.jpg", mimetype="image/jpeg")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @admin_api_bp.route("/api/screens/<screen_id>/restart", methods=["POST"])

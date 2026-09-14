@@ -57,11 +57,70 @@ DYNAMIC_HEARTBEAT_INTERVAL: int = HEARTBEAT_INTERVAL
 SCREEN_APP = PlayerScreenApp()
 
 
-def handle_remote_command(cmd: str) -> None:
-    """Handle remote command from dashboard (skip media, restart player, or reboot pi)."""
+def process_and_upload_snapshot(device_id: str) -> None:
+    """Capture snapshot of monitor and upload to server with playback health metrics."""
+    try:
+        import json
+        import secrets
+        import urllib.request
+        from core.api import api_post
+        from core.config import get_server_url
+        from core.playback import capture_display_snapshot, get_playback_health
+
+        snap_path = Path("/tmp") / f"snap_{device_id}.jpg"
+        ok = capture_display_snapshot(snap_path)
+        health = get_playback_health()
+        health["capture_method"] = "vlc_frame" if ok else "none"
+        if CURRENT_PLAYING and CURRENT_PLAYING.get("filename"):
+            health["current_playing"] = CURRENT_PLAYING["filename"]
+
+        if ok and snap_path.exists() and snap_path.stat().st_size > 0:
+            boundary = f"----WebKitFormBoundary{secrets.token_hex(8)}"
+            body = bytearray()
+
+            # Field: device_id
+            body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"device_id\"\r\n\r\n{device_id}\r\n".encode())
+            # Field: health
+            body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"health\"\r\n\r\n{json.dumps(health)}\r\n".encode())
+            # Field: image
+            img_data = snap_path.read_bytes()
+            body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"image\"; filename=\"snapshot.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n".encode())
+            body.extend(img_data)
+            body.extend(f"\r\n--{boundary}--\r\n".encode())
+
+            req = urllib.request.Request(
+                f"{get_server_url()}/api/player/snapshot",
+                data=bytes(body),
+                headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                print(f"[player] Snapshot & playback health uploaded (HTTP {resp.status})", flush=True)
+
+            try:
+                snap_path.unlink()
+            except OSError:
+                pass
+        else:
+            api_post("/api/player/snapshot", {
+                "device_id": device_id,
+                "health": health,
+            })
+            print("[player] Sent playback health without image (capture unavailable)", flush=True)
+    except Exception as e:
+        print(f"[player] Snapshot process/upload error: {e}", flush=True)
+
+
+def handle_remote_command(cmd: str, device_id: str = "") -> None:
+    """Handle remote command from dashboard (skip media, snapshot, restart player, or reboot pi)."""
     if cmd == "skip":
         print("[player] Received SKIP command from server. Skipping current media...", flush=True)
         request_skip()
+        return
+
+    if cmd == "snapshot":
+        print("[player] Received SNAPSHOT command from server. Capturing display...", flush=True)
+        threading.Thread(target=process_and_upload_snapshot, args=(device_id,), daemon=True).start()
         return
 
     stop_playback()
@@ -93,14 +152,14 @@ def handle_remote_command(cmd: str) -> None:
 
 
 def command_worker(device_id: str) -> None:
-    """Fast background thread polling remote commands (skip, restart, reboot) with low latency."""
+    """Fast background thread polling remote commands (skip, restart, reboot, snapshot) with low latency."""
     while True:
         try:
             load_server_url()
             resp = api_get(f"/api/player/command?device_id={device_id}")
             if resp and resp.get("command"):
                 cmd = resp.get("command")
-                handle_remote_command(cmd)
+                handle_remote_command(cmd, device_id=device_id)
                 if cmd in ("reboot", "restart"):
                     return
         except Exception:
@@ -162,7 +221,7 @@ def heartbeat_worker(device_id: str) -> None:
             )
             if resp and resp.get("command"):
                 cmd = resp.get("command")
-                handle_remote_command(cmd)
+                handle_remote_command(cmd, device_id=device_id)
                 if cmd in ("reboot", "restart"):
                     return
 
@@ -277,7 +336,7 @@ def orchestrator_worker(device_id: str) -> None:
             },
         )
         if resp and resp.get("command"):
-            handle_remote_command(resp.get("command"))
+            handle_remote_command(resp.get("command"), device_id=device_id)
             return
 
         with PLAYLIST_LOCK:

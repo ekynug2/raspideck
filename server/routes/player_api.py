@@ -9,7 +9,7 @@ import secrets
 from datetime import datetime, timezone
 from typing import Any
 
-from config import MEDIA_DIR, THUMBNAILS_DIR, UPDATES_DIR
+from config import MEDIA_DIR, SNAPSHOTS_DIR, THUMBNAILS_DIR, UPDATES_DIR
 from db import get_db
 from flask import Blueprint, jsonify, request, send_from_directory
 from ota import PACKAGE_FILENAME, get_latest_manifest, send_resumable_file
@@ -152,17 +152,38 @@ def player_heartbeat():
         except Exception as e:
             logger.error(f"[OTA] Failed to reconcile update status on heartbeat: {e}")
 
-        # Update telemetry, IP, last seen, app version, and status
+        # Extract playback_health if present in system_info
+        pb_health_val = None
+        try:
+            parsed_info = json.loads(sys_info) if isinstance(sys_info, str) else (sys_info or {})
+            if isinstance(parsed_info, dict) and "playback_health" in parsed_info:
+                pb_health_val = json.dumps(parsed_info["playback_health"])
+        except Exception:
+            pass
+
+        # Update telemetry, IP, last seen, app version, status, and health
         if reconciled_logs:
-            conn.execute(
-                "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ?, last_update_log = ?, update_lock_acquired_at = NULL WHERE id = ?",
-                (now_iso, ip_addr, sys_info, app_version, update_status, reconciled_logs, device_id),
-            )
+            if pb_health_val:
+                conn.execute(
+                    "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ?, last_update_log = ?, playback_health = ?, update_lock_acquired_at = NULL WHERE id = ?",
+                    (now_iso, ip_addr, sys_info, app_version, update_status, reconciled_logs, pb_health_val, device_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ?, last_update_log = ?, update_lock_acquired_at = NULL WHERE id = ?",
+                    (now_iso, ip_addr, sys_info, app_version, update_status, reconciled_logs, device_id),
+                )
         else:
-            conn.execute(
-                "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ? WHERE id = ?",
-                (now_iso, ip_addr, sys_info, app_version, update_status, device_id),
-            )
+            if pb_health_val:
+                conn.execute(
+                    "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ?, playback_health = ? WHERE id = ?",
+                    (now_iso, ip_addr, sys_info, app_version, update_status, pb_health_val, device_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE screens SET last_seen = ?, ip_address = ?, system_info = ?, app_version = ?, update_status = ? WHERE id = ?",
+                    (now_iso, ip_addr, sys_info, app_version, update_status, device_id),
+                )
 
         # Resolve screen-specific settings
         raw_settings = row["settings"] if "settings" in row.keys() else "{}"
@@ -386,6 +407,78 @@ def player_update_status():
             )
 
     return jsonify({"success": True})
+
+
+# --- SCREEN SNAPSHOT UPLOAD ---
+
+
+@player_api_bp.route("/api/player/snapshot", methods=["POST"])
+def upload_snapshot():
+    """Receive screen snapshot image and playback health telemetry from player."""
+    device_id = request.form.get("device_id")
+    device_token = request.form.get("device_token")
+    raw_health = request.form.get("health", "{}")
+
+    # If sent as JSON (base64 image fallback)
+    if not device_id and request.is_json:
+        data = request.get_json(silent=True) or {}
+        device_id = data.get("device_id")
+        device_token = data.get("device_token")
+        raw_health = json.dumps(data.get("health", {}))
+
+    if not device_id:
+        return jsonify({"error": "missing device_id"}), 400
+
+    with get_db() as conn:
+        row = conn.execute("SELECT id, device_token FROM screens WHERE id = ?", (device_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "screen not found"}), 404
+        if row["device_token"] and device_token and row["device_token"] != device_token:
+            return jsonify({"error": "invalid device token"}), 403
+
+        # Parse and sanitize health JSON
+        health_obj = {}
+        try:
+            health_obj = json.loads(raw_health) if isinstance(raw_health, str) else raw_health
+        except Exception:
+            pass
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        health_obj["updated_at"] = now_iso
+        health_json = json.dumps(health_obj)
+
+        # Handle image file upload or base64
+        image_saved = False
+        SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+        target_path = SNAPSHOTS_DIR / f"{device_id}.jpg"
+
+        if "image" in request.files:
+            file = request.files["image"]
+            if file and file.filename:
+                file.save(str(target_path))
+                image_saved = True
+        elif request.is_json:
+            b64_img = request.json.get("image_base64")
+            if b64_img:
+                import base64
+
+                if "," in b64_img:
+                    b64_img = b64_img.split(",", 1)[1]
+                target_path.write_bytes(base64.b64decode(b64_img))
+                image_saved = True
+
+        if image_saved:
+            conn.execute(
+                "UPDATE screens SET last_snapshot_at = ?, playback_health = ? WHERE id = ?",
+                (now_iso, health_json, device_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE screens SET playback_health = ? WHERE id = ?",
+                (health_json, device_id),
+            )
+
+    return jsonify({"success": True, "saved": image_saved, "captured_at": now_iso})
 
 
 # --- MEDIA SERVING ---
