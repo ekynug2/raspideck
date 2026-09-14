@@ -3,7 +3,6 @@
 [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%203B%2B%20%7C%204%20%7C%205%20%7C%20Zero%202W-red.svg)](https://www.raspberrypi.com/)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED.svg)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-v2.1.0-brightgreen.svg)](player/VERSION)
 
 **RaspiDeck** is a lightweight, robust, self-hosted digital signage CMS and kiosk player system designed specifically for Raspberry Pi devices (Raspberry Pi 3 B+, 4, 5, and Zero 2 W).
@@ -443,7 +442,3 @@ journalctl -u raspideck.service -f
 **A**: The player automatically enters offline mode. It loops cached media from `/opt/raspideck/media/playlist_cache.json` indefinitely and reconnects automatically once the network returns.
 
 ---
-
-## License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
