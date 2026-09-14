@@ -78,35 +78,67 @@ Sistem ini menggabungkan **Web Management Dashboard** terpusat di server (dileng
 
 ```
 raspi-deck/
+├── .env.example                 # Template konfigurasi variabel environment
+├── .gitignore                   # Aturan pengabaian file Git (db, media, log, secrets)
 ├── docker-compose.yml           # Orkestrasi Docker (Server + Cloudflare Tunnel)
-├── example.db                   # Database demonstrasi awal (opsional)
-├── server/                      # Aplikasi Server & Web Dashboard
-│   ├── app.py                   # Inisialisasi aplikasi Flask
-│   ├── config.py                # Parsing environment & konfigurasi path
-│   ├── db.py                    # Schema SQLite, auto-migrasi kolom, WAL mode
-│   ├── auth.py                  # Autentikasi sesi admin & rate limiting login
-│   ├── ota.py                   # Build & verifikasi paket OTA (raspideck-player.tar.gz)
-│   ├── routes/
-│   │   ├── web.py               # Halaman web dashboard, login/logout, preview splash
+├── example.db                   # Database demonstrasi awal (screens, playlists, media)
+├── README.md                    # Dokumentasi lengkap sistem
+│
+├── server/                      # Aplikasi Server Management Dashboard & REST API
+│   ├── app.py                   # Inisialisasi aplikasi Flask & middleware
+│   ├── config.py                # Konfigurasi path storage, CORS, upload limit, & env
+│   ├── db.py                    # Schema SQLite, auto-migrasi kolom, mode WAL
+│   ├── auth.py                  # Autentikasi sesi admin, verifikasi password & rate limit
+│   ├── ota.py                   # Engine build paket OTA (raspideck-player.tar.gz) & manifest
+│   ├── utils.py                 # Ekstraksi thumbnail video (ffmpeg) & validasi format
+│   ├── requirements.txt         # Dependensi Python server (Flask, Gunicorn, Pillow, dll)
+│   ├── Dockerfile               # Resep build container server
+│   │
+│   ├── routes/                  # Controller endpoint modular
+│   │   ├── web.py               # Rute halaman web dashboard, login/logout, preview splash
 │   │   ├── admin_api.py         # REST API screens, settings, snapshot, media, playlist
 │   │   └── player_api.py        # REST API komunikasi player (heartbeat, snapshot, OTA)
-│   ├── static/                  # Asset CSS, JS modular (screens, playlists, media), vendor
-│   └── templates/               # Template Jinja2 Tabler UI
-└── player/                      # Client Player Raspberry Pi
-    ├── player.py                # Main loop player, snapshot handler, command poller
-    ├── VERSION                  # Versi player (v2.2.7)
-    ├── install.sh               # Skrip instalasi otomatis Raspberry Pi OS
-    ├── generate_splash.py       # Generator gambar splash boot (Pillow)
+│   │
+│   ├── static/                  # File asset statis web frontend
+│   │   ├── css/
+│   │   │   └── dashboard.css    # Kustomisasi styling Tabler UI responsif
+│   │   ├── js/                  # Frontend JavaScript modular
+│   │   │   ├── app.js           # Inisialisasi state, ganti tema, navigasi tab, & API helper
+│   │   │   ├── screens.js       # Manajemen display card, modal diagnostic, snapshot & settings
+│   │   │   ├── playlists.js     # Playlist builder, drag-and-drop order, & schedule editor
+│   │   │   └── media.js         # Media library, drag-and-drop dropzone uploader & preview
+│   │   └── vendor/tabler/       # Bundle vendor Tabler UI (CSS, Icon fonts, Bootstrap JS)
+│   │
+│   └── templates/               # Template tampilan Jinja2
+│       ├── dashboard.html       # Halaman utama manajemen signage
+│       ├── login.html           # Halaman login administrator
+│       └── partials/            # Komponen modular UI (navbar, tab views, modals, kpi)
+│           ├── navbar.html      # Topbar navigasi & toggle tema
+│           ├── kpi_cards.html   # Kartu statistik ringkasan dashboard
+│           ├── tab_screens.html # Tampilan kartu daftar terminal display
+│           ├── tab_playlists.html # Tampilan editor & penjadwalan playlist
+│           ├── tab_media.html   # Tampilan galeri aset video & gambar
+│           └── modals.html      # Modal container & dialog box
+│
+└── player/                      # Client Player Kiosk untuk Raspberry Pi
+    ├── player.py                # Main loop player, snapshot handler, command poller & state
+    ├── VERSION                  # File teks versi software player saat ini (v2.2.7)
+    ├── install.sh               # Skrip instalasi otomatis Raspberry Pi OS (systemd, X11, Plymouth)
+    ├── generate_splash.py       # Generator standalone gambar splash boot (Pillow)
+    │
     ├── bin/
-    │   └── restart-player.sh    # Wrapper sudo terbatas untuk restart aman service
-    └── core/
-        ├── config.py            # Deteksi Device ID, resolusi server URL & token
-        ├── playback.py          # Engine LibVLC, frame capture & diagnosa performa
-        ├── settings.py          # Eksekusi setting hardware (volume, rotation, DPMS)
-        ├── telemetry.py         # Pengumpul metrik hardware (CPU, RAM, suhu, disk, HDMI)
-        ├── updater.py           # Engine download OTA, symlink swap & rollback
-        ├── cache.py             # Manajemen file cache lokal media
-        └── screens.py           # Render visual pairing code & status overlay
+    │   └── restart-player.sh    # Wrapper sudo terbatas untuk restart aman service raspideck
+    │
+    └── core/                    # Modul inti player
+        ├── config.py            # Deteksi Serial Device ID, server URL & device token
+        ├── playback.py          # Kontrol pemutaran LibVLC, frame grabber & evaluasi video health
+        ├── settings.py          # Eksekusi pengaturan hardware (volume amixer, xrandr, DPMS)
+        ├── telemetry.py         # Pengumpul metrik hardware (CPU, RAM, suhu, sisa disk, HDMI)
+        ├── updater.py           # Engine OTA download (HTTP Range), validasi SHA-256 & rollback
+        ├── cache.py             # Manajemen file cache lokal media & verifikasi chunk SHA-256
+        ├── api.py               # HTTP client client-to-server dengan retry & exponential backoff
+        ├── gui.py               # Fullscreen kiosk Tkinter UI (booting, pairing screen, loading bar)
+        └── screens.py           # Generator canvas gambar statis pairing screen & fallback (Pillow)
 ```
 
 ---
@@ -128,7 +160,13 @@ raspi-deck/
    ```
    *Atur `ADMIN_PASSWORD`, `SECRET_KEY`, dan `CLOUDFLARE_TUNNEL_TOKEN` (opsional jika menggunakan Cloudflare Tunnel).*
 
-3. Jalankan container:
+3. (Opsional) Menggunakan database demo:
+   ```bash
+   mkdir -p data/media data/updates data/snapshots
+   cp example.db data/deck.db
+   ```
+
+4. Jalankan container:
    ```bash
    docker compose up -d
    ```
@@ -257,6 +295,14 @@ Setiap display terminal dapat diatur secara independen melalui modal **Settings*
 | `RASPIDECK_MEDIA_DIR` | `/opt/raspideck/media` | Direktori cache media lokal di Raspberry Pi. |
 | `RASPIDECK_POLL_INTERVAL`| `30` | Interval fallback polling heartbeat (detik). |
 | `RASPIDECK_DEVICE_ID` | *(Serial Pi)* | Pengenal unik perangkat (otomatis membaca serial hardware Pi). |
+
+---
+
+## 💡 Catatan Optimasi Hardware
+
+- **Raspberry Pi 3 Model B / B+**: Sangat stabil untuk pemutaran video 1080p H.264 (AVC). Memori dialokasikan 512MB GPU (`gpu_mem=512`) dan 512MB swap file untuk mencegah OOM (*out of memory*).
+- **Raspberry Pi 4 / 5**: Mendukung dual micro-HDMI output dan video resolusi tinggi hingga 4K 60 FPS.
+- **MicroSD Endurance**: Karena unit digital signage beroperasi 24/7 di outlet, disarankan menggunakan kartu MicroSD bertipe *High Endurance* / *Industrial* (misalnya SanDisk High Endurance atau Samsung PRO Endurance) guna mencegah keausan flash memory.
 
 ---
 
