@@ -258,11 +258,19 @@ class PlayerScreenApp:
                 cmd, data = self._event_queue.get_nowait()
                 if cmd == "STATE":
                     new_state = data.get("state", self._current_state)
+                    data_changed = False
+                    for k, v in data.items():
+                        if k == "state":
+                            continue
+                        if self._state_data.get(k) != v:
+                            self._state_data[k] = v
+                            data_changed = True
+
                     if new_state != self._current_state:
                         self._current_state = new_state
                         state_changed = True
-                    self._state_data.update(data)
-                    state_changed = True
+                    elif data_changed:
+                        self._update_current_screen_data()
                 elif cmd == "PROGRESS":
                     self._state_data.update(data)
                     self._update_progress_display()
@@ -627,6 +635,36 @@ class PlayerScreenApp:
                     tags="progress_fill",
                 )
 
+    def _update_current_screen_data(self) -> None:
+        """Update dynamic labels on current screen in-place without wiping or redrawing canvas."""
+        if self._canvas is None:
+            return
+
+        try:
+            if self._current_state == "PAIRING":
+                raw_code = self._state_data.get("pairing_code", "------")
+                spaced_code = " ".join(list(raw_code.upper()))
+                self._canvas.itemconfig("pairing_code_label", text=spaced_code)
+                ip = self._state_data.get("ip_address") or "Mencari IP..."
+                srv = self._state_data.get("server_url") or "Local"
+                dev = self._state_data.get("device_id") or ""
+                footer_text = f"Device ID: {dev}   |   IP: {ip}   |   Server: {srv}"
+                self._canvas.itemconfig("footer_label", text=footer_text)
+
+            elif self._current_state in ("BOOT", "LOADING_MEDIA"):
+                status = self._state_data.get("status", "")
+                detail = self._state_data.get("detail", "")
+                self._canvas.itemconfig("status_label", text=status)
+                self._canvas.itemconfig("detail_label", text=detail)
+
+            elif self._current_state == "WAITING":
+                status = self._state_data.get("status", "")
+                detail = self._state_data.get("detail", "")
+                self._canvas.itemconfig("status_label", text=status)
+                self._canvas.itemconfig("status_detail", text=detail)
+        except Exception:
+            pass
+
     def _draw_pairing_screen(self, cx: int, h: int) -> None:
         """Pairing screen shown when device is not yet paired."""
         top_y = 100
@@ -752,7 +790,7 @@ class PlayerScreenApp:
             text=footer_text,
             font=("Segoe UI", 11),
             fill="#475569",
-            tags="static",
+            tags="footer_label",
         )
 
     def _draw_waiting_screen(self, cx: int, h: int) -> None:

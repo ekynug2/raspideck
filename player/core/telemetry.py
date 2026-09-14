@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import platform
+import re
 import shutil
 import socket
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -84,7 +86,8 @@ def get_system_info(current_playing: dict[str, str | None] | None = None) -> dic
     try:
         hdmi_status = "disconnected"
         resolution = "unknown"
-        # Check DRM HDMI connections
+
+        # Check DRM HDMI connections (KMS driver / Bookworm / Pi 4/5)
         for drm_path in Path("/sys/class/drm").glob("card*-HDMI-A-*"):
             status_file = drm_path / "status"
             if status_file.exists() and status_file.read_text().strip() == "connected":
@@ -95,6 +98,38 @@ def get_system_info(current_playing: dict[str, str | None] | None = None) -> dic
                     if modes:
                         resolution = modes[0].strip()
                 break
+
+        # Fallback 1: tvservice (Raspberry Pi legacy firmware / Broadcom driver)
+        if hdmi_status != "connected" and shutil.which("tvservice"):
+            try:
+                res = subprocess.run(["tvservice", "-s"], capture_output=True, text=True, timeout=2)
+                out = res.stdout.strip()
+                if "[HDMI" in out and "unplugged" not in out and "HDMI off" not in out:
+                    hdmi_status = "connected"
+                    m = re.search(r"(\d+x\d+)", out)
+                    if m and resolution == "unknown":
+                        resolution = m.group(1)
+            except Exception:
+                pass
+
+        # Fallback 2: vcgencmd display_power
+        if hdmi_status != "connected" and shutil.which("vcgencmd"):
+            try:
+                res = subprocess.run(["vcgencmd", "display_power"], capture_output=True, text=True, timeout=2)
+                if "display_power=1" in res.stdout:
+                    hdmi_status = "connected"
+            except Exception:
+                pass
+
+        # Fallback 3: xrandr query for connected displays
+        if hdmi_status != "connected" and shutil.which("xrandr"):
+            try:
+                env = {"DISPLAY": ":0"}
+                res = subprocess.run(["xrandr", "--query"], capture_output=True, text=True, env=env, timeout=2)
+                if " connected" in res.stdout:
+                    hdmi_status = "connected"
+            except Exception:
+                pass
 
         # Check framebuffer virtual size (actual active resolution e.g. 1920x1080, 1280x720)
         fb_path = Path("/sys/class/graphics/fb0/virtual_size")

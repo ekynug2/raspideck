@@ -304,6 +304,7 @@ def orchestrator_worker(device_id: str) -> None:
         time.sleep(1.0 - boot_elapsed)
 
     current_version = -1
+    last_gui_screen = None
 
     while True:
         with PLAYLIST_LOCK:
@@ -318,12 +319,15 @@ def orchestrator_worker(device_id: str) -> None:
             CURRENT_PLAYING["media_type"] = None
             stop_playback()
             SCREEN_APP.show()
-            SCREEN_APP.set_pairing(
-                pairing_code=pairing_code or "------",
-                ip_address=local_ip,
-                server_url=SERVER_URL,
-                device_id=device_id,
-            )
+            screen_key = ("unpaired", pairing_code, local_ip)
+            if last_gui_screen != screen_key:
+                SCREEN_APP.set_pairing(
+                    pairing_code=pairing_code or "------",
+                    ip_address=local_ip,
+                    server_url=SERVER_URL,
+                    device_id=device_id,
+                )
+                last_gui_screen = screen_key
             time.sleep(2)
             continue
 
@@ -342,7 +346,10 @@ def orchestrator_worker(device_id: str) -> None:
                     CURRENT_PLAYING["media_type"] = None
                     stop_playback()
                     SCREEN_APP.show()
-                    SCREEN_APP.set_waiting("Server Tidak Terjangkau (Mode Offline)")
+                    screen_key = ("offline_waiting",)
+                    if last_gui_screen != screen_key:
+                        SCREEN_APP.set_waiting("Server Tidak Terjangkau (Mode Offline)")
+                        last_gui_screen = screen_key
                     time.sleep(3)
                     continue
             else:
@@ -350,9 +357,14 @@ def orchestrator_worker(device_id: str) -> None:
                 CURRENT_PLAYING["media_type"] = None
                 stop_playback()
                 SCREEN_APP.show()
-                SCREEN_APP.set_waiting("Menunggu Playlist dari Server...")
+                screen_key = ("server_waiting",)
+                if last_gui_screen != screen_key:
+                    SCREEN_APP.set_waiting("Menunggu Playlist dari Server...")
+                    last_gui_screen = screen_key
                 time.sleep(3)
                 continue
+
+        last_gui_screen = None
 
         # State 3: PAIRED with Playlist
         version = playlist.get("version", 0)

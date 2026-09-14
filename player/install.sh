@@ -2,12 +2,24 @@
 # RaspiDeck Pi Player Installer (with boot splash)
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_URL="${1:-http://your-vps-ip:8000}"
 
 echo "========================================="
 echo "  RaspiDeck Pi 3 B+ Installer"
 echo "  Server: $SERVER_URL"
 echo "========================================="
+
+# 0. Clean up conflicting legacy services & player processes
+echo "[0/6] Cleaning up conflicting legacy services..."
+sudo systemctl stop videoplayer.service 2>/dev/null || true
+sudo systemctl disable videoplayer.service 2>/dev/null || true
+sudo systemctl mask videoplayer.service 2>/dev/null || true
+sudo rm -f /etc/systemd/system/videoplayer.service 2>/dev/null || true
+sudo systemctl daemon-reload 2>/dev/null || true
+sudo systemctl stop lightdm.service 2>/dev/null || true
+sudo systemctl disable lightdm.service 2>/dev/null || true
+sudo killall -9 -q python3 vlc xinit Xorg matchbox-window-manager unclutter 2>/dev/null || true
 
 # 1. Update & install VLC + X11 kiosk dependencies
 echo "[1/6] Installing VLC, X11, and required packages..."
@@ -38,10 +50,13 @@ echo -e "allowed_users=anybody\nneeds_root_rights=yes" | sudo tee /etc/X11/Xwrap
 # Install python-vlc binding if missing
 sudo pip3 install --break-system-packages python-vlc 2>/dev/null || pip3 install python-vlc || true
 
+TARGET_USER="${SUDO_USER:-$USER}"
+[ "$TARGET_USER" = "root" ] && [ -d "/home/pi" ] && TARGET_USER="pi"
+
 # 2. Setup directory, player script, boot config, and kiosk start script
 echo "[2/6] Setting up player directory & configs..."
 sudo mkdir -p /opt/raspideck/media
-sudo chown -R "$USER":"$USER" /opt/raspideck
+sudo chown -R "$TARGET_USER":"$TARGET_USER" /opt/raspideck
 
 # Save server URL to boot partition (editable in Windows when SD card is inserted)
 BOOT_CONF="/boot/raspideck.txt"
@@ -49,21 +64,23 @@ BOOT_CONF="/boot/raspideck.txt"
 echo "SERVER_URL=$SERVER_URL" | sudo tee "$BOOT_CONF" >/dev/null
 echo "  Server URL saved to $BOOT_CONF"
 
-# Configure ALSA default audio to HDMI (card 1)
-echo -e "defaults.pcm.card 1\ndefaults.ctl.card 1" | sudo tee /etc/asound.conf >/dev/null
+# Configure ALSA default audio to HDMI (card 0)
+echo -e "defaults.pcm.card 0\ndefaults.ctl.card 0" | sudo tee /etc/asound.conf >/dev/null
 
 # Copy player script and core modules
 sudo mkdir -p /opt/raspideck/bin /opt/raspideck/versions
-if [ -d "./player" ]; then
+if [ -f "$SCRIPT_DIR/player.py" ]; then
+    cp -r "$SCRIPT_DIR"/* /opt/raspideck/
+elif [ -d "$SCRIPT_DIR/player" ]; then
+    cp -r "$SCRIPT_DIR"/player/* /opt/raspideck/
+elif [ -d "./player" ]; then
     cp -r ./player/* /opt/raspideck/
-elif [ -f "./player.py" ]; then
-    cp -r ./* /opt/raspideck/
 fi
 chmod +x /opt/raspideck/player.py 2>/dev/null || true
 chmod +x /opt/raspideck/bin/*.sh 2>/dev/null || true
 
 # Setup restricted sudoers entry for restart script (safe OTA privilege)
-echo "$USER ALL=(ALL) NOPASSWD: /opt/raspideck/bin/restart-player.sh" | sudo tee /etc/sudoers.d/raspideck-ota >/dev/null
+echo "$TARGET_USER ALL=(ALL) NOPASSWD: /opt/raspideck/bin/restart-player.sh" | sudo tee /etc/sudoers.d/raspideck-ota >/dev/null
 sudo chmod 0440 /etc/sudoers.d/raspideck-ota
 
 # Create kiosk startup script
@@ -101,10 +118,10 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 TARGET_EXEC="/opt/raspideck/player.py"
 [ -f "/opt/raspideck/current/player.py" ] && TARGET_EXEC="/opt/raspideck/current/player.py"
 
-exec /usr/bin/python3 -u "$TARGET_EXEC" >> /opt/raspideck/player.log 2>&1
+/usr/bin/python3 -u "$TARGET_EXEC" 2>&1 | tee -a /opt/raspideck/player.log
 STARTSCRIPT
 sudo chmod +x /opt/raspideck/start.sh
-sudo chown "$USER":"$USER" /opt/raspideck/start.sh
+sudo chown "$TARGET_USER":"$TARGET_USER" /opt/raspideck/start.sh
 
 
 # 3. Create systemd service
@@ -119,18 +136,19 @@ StartLimitIntervalSec=300
 
 [Service]
 Type=simple
-User=$USER
-Group=$USER
+User=$TARGET_USER
+Group=$TARGET_USER
 PAMName=login
 Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/$USER/.Xauthority
+Environment=XAUTHORITY=/home/$TARGET_USER/.Xauthority
 Environment=RASPIDECK_SERVER=$SERVER_URL
 Environment=RASPIDECK_MEDIA_DIR=/opt/raspideck/media
 Environment=RASPIDECK_POLL_INTERVAL=15
 Environment=DBUS_SESSION_BUS_ADDRESS=/dev/null
-ExecStartPre=-/usr/bin/killall -q vlc xinit Xorg matchbox-window-manager unclutter
-ExecStartPre=-/bin/sleep 1
+ExecStartPre=/bin/sh -c '/usr/bin/killall -q vlc xinit Xorg matchbox-window-manager unclutter || true'
+ExecStartPre=/bin/sleep 1
 ExecStart=/usr/bin/xinit /opt/raspideck/start.sh -- :0 vt1 -nocursor -keeptty
+SuccessExitStatus=1 143
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -144,9 +162,15 @@ sudo systemctl daemon-reload
 sudo systemctl enable raspideck.service
 
 # Disable desktop display manager (LightDM) & console login so no login screen ever appears
+sudo systemctl stop lightdm.service 2>/dev/null || true
 sudo systemctl disable lightdm.service 2>/dev/null || true
+sudo systemctl mask lightdm.service 2>/dev/null || true
 sudo systemctl set-default multi-user.target 2>/dev/null || true
 sudo systemctl mask getty@tty1.service 2>/dev/null || true
+
+# Configure OS to boot to console and disable screen blanking
+sudo raspi-config nonint do_boot_behaviour B1 2>/dev/null || true
+sudo raspi-config nonint do_blanking 1 2>/dev/null || true
 
 # 4. Install boot splash (Plymouth theme)
 echo "[4/6] Installing boot splash..."
@@ -154,7 +178,11 @@ THEME_DIR=/usr/share/plymouth/themes/raspideck
 sudo mkdir -p "$THEME_DIR"
 
 # Copy splash image
-if [ -f "./player/splash.png" ]; then
+if [ -f "$SCRIPT_DIR/splash.png" ]; then
+    sudo cp "$SCRIPT_DIR/splash.png" "$THEME_DIR/"
+elif [ -f "$SCRIPT_DIR/player/splash.png" ]; then
+    sudo cp "$SCRIPT_DIR/player/splash.png" "$THEME_DIR/"
+elif [ -f "./player/splash.png" ]; then
     sudo cp ./player/splash.png "$THEME_DIR/"
 elif [ -f "./splash.png" ]; then
     sudo cp ./splash.png "$THEME_DIR/"
@@ -180,10 +208,21 @@ cat <<'PLYSCRIPT' | sudo tee "$THEME_DIR/raspideck.script"
 # RaspiDeck Plymouth boot animation script
 # Plymouth scripting language — see freedesktop.org/wiki/Software/Plymouth
 
-# Load and center the splash image
+# Load and center the splash image (auto-scale if display resolution is smaller than 1080p)
 splash = Image("splash.png");
 screen_w = Window.GetWidth();
 screen_h = Window.GetHeight();
+
+if (screen_w < splash.GetWidth() || screen_h < splash.GetHeight()) {
+    scale_w = screen_w / splash.GetWidth();
+    scale_h = screen_h / splash.GetHeight();
+    scale = scale_w;
+    if (scale_h < scale_w) scale = scale_h;
+    new_w = splash.GetWidth() * scale;
+    new_h = splash.GetHeight() * scale;
+    splash = splash.Scale(new_w, new_h);
+}
+
 img_w = splash.GetWidth();
 img_h = splash.GetHeight();
 x = (screen_w - img_w) / 2;
@@ -213,36 +252,47 @@ sudo update-alternatives --set default.plymouth \
     "$THEME_DIR/raspideck.plymouth"
 
 # 5. Quiet boot — hide kernel text, cursor, rainbow square
-echo "[5/6] Configuring quiet boot..."
+echo "[5/6] Configuring quiet boot & display..."
 
 # /boot/cmdline.txt — single line, append options if not present
 CMDLINE_FILE="/boot/cmdline.txt"
 # Try /boot/firmware/cmdline.txt for newer Raspberry Pi OS (Bookworm+)
 [ -f "/boot/firmware/cmdline.txt" ] && CMDLINE_FILE="/boot/firmware/cmdline.txt"
 
-for opt in quiet splash plymouth.ignore-serial-consoles logo.nologo vt.global_cursor_default=0 loglevel=0 fbcon=map:3 fsck.mode=skip systemd.show_status=0 rd.systemd.show_status=0; do
+for opt in quiet splash plymouth.ignore-serial-consoles logo.nologo vt.global_cursor_default=0 loglevel=1 rd.systemd.show_status=0 consoleblank=0; do
     if ! grep -q "$opt" "$CMDLINE_FILE"; then
         sudo sed -i.bak "s/$/ $opt/" "$CMDLINE_FILE"
     fi
 done
 
+# Clean up harmful or stale cmdline params if previously injected
+sudo sed -i 's/plymouth.enable=0//g' "$CMDLINE_FILE" 2>/dev/null || true
+sudo sed -i 's/fbcon=map:3//g' "$CMDLINE_FILE" 2>/dev/null || true
+sudo sed -i 's/fsck.mode=skip//g' "$CMDLINE_FILE" 2>/dev/null || true
+sudo sed -i 's/  */ /g' "$CMDLINE_FILE" 2>/dev/null || true
+
 # Disable terminal login prompt on tty1 to prevent any text flashing before kiosk GUI loads
 sudo systemctl mask getty@tty1.service 2>/dev/null || true
 
-# /boot/config.txt — disable GPU rainbow splash, boot delay, & force HDMI 1080p 60Hz hotplug
+# Suppress harmless fbturbo Sunxi 2D accelerator modprobe error on Broadcom Pi
+echo "install g2d_23 /bin/true" | sudo tee /etc/modprobe.d/blacklist-g2d.conf >/dev/null
+
+# /boot/config.txt — disable GPU rainbow splash, boot delay, & configure display
 CONFIG_FILE="/boot/config.txt"
 [ -f "/boot/firmware/config.txt" ] && CONFIG_FILE="/boot/firmware/config.txt"
 sudo grep -q '^disable_splash=' "$CONFIG_FILE" || echo 'disable_splash=1' | sudo tee -a "$CONFIG_FILE" >/dev/null
 sudo grep -q '^boot_delay=' "$CONFIG_FILE" || echo 'boot_delay=0' | sudo tee -a "$CONFIG_FILE" >/dev/null
 sudo grep -q '^avoid_warnings=' "$CONFIG_FILE" || echo 'avoid_warnings=1' | sudo tee -a "$CONFIG_FILE" >/dev/null
 
-KVER=$(uname -r)
-INITRD_IMG="/boot/initrd.img-$KVER"
-[ -d "/boot/firmware" ] && INITRD_IMG="/boot/firmware/initrd.img-$KVER"
-sudo grep -q '^initramfs' "$CONFIG_FILE" || echo "initramfs $(basename "$INITRD_IMG") followkernel" | sudo tee -a "$CONFIG_FILE" >/dev/null
+# Remove dangerous initramfs injection that halts the GPU firmware bootloader
+sudo sed -i '/^initramfs/d' "$CONFIG_FILE" 2>/dev/null || true
 
-# Force HDMI signal even if TV is turned on after Pi boots, & allocate 512MB GPU for hardware video decoding
-for setting in "hdmi_force_hotplug=1" "hdmi_drive=2" "hdmi_group=1" "hdmi_mode=16" "gpu_mem=512"; do
+# Remove hardcoded 1080p modes so any display (720p, 1080p, PC monitors) auto-negotiates via EDID
+sudo sed -i '/^hdmi_group=/d' "$CONFIG_FILE" 2>/dev/null || true
+sudo sed -i '/^hdmi_mode=/d' "$CONFIG_FILE" 2>/dev/null || true
+
+# Force HDMI signal even if TV is turned on after Pi boots, route audio to HDMI, & allocate 512MB GPU memory
+for setting in "hdmi_force_hotplug=1" "hdmi_drive=2" "gpu_mem=512"; do 
     key=$(echo "$setting" | cut -d= -f1)
     if ! grep -q "^$key=" "$CONFIG_FILE"; then
         echo "$setting" | sudo tee -a "$CONFIG_FILE" >/dev/null
@@ -251,9 +301,9 @@ for setting in "hdmi_force_hotplug=1" "hdmi_drive=2" "hdmi_group=1" "hdmi_mode=1
     fi
 done
 
-# Configure 2048MB swap for high performance video decoding and stability
+# Configure 512MB swap for safe video decoding headroom without thrashing SD card
 if [ -f "/etc/dphys-swapfile" ]; then
-    sudo sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
+    sudo sed -i 's/^CONF_SWAPSIZE=.*/CONF_SWAPSIZE=512/' /etc/dphys-swapfile
     sudo dphys-swapfile swapoff 2>/dev/null || true
     sudo dphys-swapfile setup 2>/dev/null || true
     sudo dphys-swapfile swapon 2>/dev/null || true
@@ -264,14 +314,9 @@ echo "Configuring timezone & time synchronization..."
 sudo timedatectl set-timezone Asia/Jakarta 2>/dev/null || true
 sudo timedatectl set-ntp true 2>/dev/null || true
 
-# Route system audio to HDMI by default (Card 0)
-cat <<'EOF' | sudo tee /etc/asound.conf >/dev/null
-defaults.pcm.card 0
-defaults.ctl.card 0
-EOF
 # 6. Update initramfs with new Plymouth theme
 echo "[6/6] Updating initramfs..."
-sudo update-initramfs -c -k "$KVER" 2>/dev/null || sudo update-initramfs -u -k "$KVER"
+sudo update-initramfs -u 2>/dev/null || true
 
 echo ""
 echo "========================================="

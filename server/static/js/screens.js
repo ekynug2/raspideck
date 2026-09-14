@@ -16,6 +16,11 @@ async function fetchPlayerVersion() {
   }
 }
 
+function sortScreensList(screens) {
+  if (!Array.isArray(screens)) return [];
+  return [...screens].sort((a, b) => (a.name || a.id || '').localeCompare(b.name || b.id || '', undefined, { numeric: true, sensitivity: 'base' }));
+}
+
 let isFetchingScreensSilent = false;
 
 async function fetchScreensSilent() {
@@ -24,8 +29,14 @@ async function fetchScreensSilent() {
   try {
     const data = await api('/api/screens');
     if (!data) return;
-    state.screens = data;
-    renderScreens();
+    state.screens = sortScreensList(data);
+
+    // Skip DOM rebuild if user is currently interacting with an open dropdown or form field in the grid
+    const grid = document.getElementById('screens-grid');
+    const isInteracting = grid && (grid.querySelector('.dropdown-menu.show') || (document.activeElement && grid.contains(document.activeElement) && ['SELECT', 'BUTTON', 'INPUT'].includes(document.activeElement.tagName)));
+    if (!isInteracting) {
+      renderScreens();
+    }
     updateScreenStats();
   } finally {
     isFetchingScreensSilent = false;
@@ -36,7 +47,7 @@ async function fetchScreens() {
   await fetchPlayerVersion();
   const data = await api('/api/screens');
   if (!data) return;
-  state.screens = data;
+  state.screens = sortScreensList(data);
   renderScreens();
   updateScreenStats();
 }
@@ -197,8 +208,8 @@ function renderScreens() {
   if (!grid) return;
   const search = (document.getElementById('screens-search')?.value || '').toLowerCase().trim();
 
-  const unpaired = state.screens.filter(s => !s.is_paired);
-  const paired = state.screens.filter(s => s.is_paired);
+  const unpaired = sortScreensList(state.screens.filter(s => !s.is_paired));
+  const paired = sortScreensList(state.screens.filter(s => s.is_paired));
 
   // Render Unpaired Callout Banner
   if (unpairedDiv) {

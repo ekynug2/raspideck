@@ -23,14 +23,14 @@ admin_api_bp = Blueprint("admin_api", __name__)
 
 @admin_api_bp.route("/api/screens", methods=["GET"])
 def list_screens():
-    """List all registered screens ordered by last seen."""
+    """List all registered screens ordered stably by name and id."""
     if not require_auth():
         return jsonify({"error": "unauthorized"}), 401
     with get_db() as conn:
         screens = [
             dict(r)
             for r in conn.execute(
-                "SELECT * FROM screens ORDER BY last_seen DESC"
+                "SELECT * FROM screens ORDER BY name COLLATE NOCASE ASC, id ASC"
             ).fetchall()
         ]
     return jsonify(screens)
