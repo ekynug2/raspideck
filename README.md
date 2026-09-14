@@ -30,7 +30,6 @@ It provides a centralized Web Management Dashboard on your server/VPS and an aut
 - [Environment Configuration](#environment-configuration)
 - [Hardware & Optimization Notes](#hardware--optimization-notes)
 - [Troubleshooting & FAQ](#troubleshooting--faq)
-- [License](#license)
 
 ---
 
